@@ -4,6 +4,7 @@ import mysql.connector
 from datetime import datetime
 import os
 
+
 def get_db_connection():
     return mysql.connector.connect(
         host=os.getenv('DATABASE_HOST', 'localhost'),

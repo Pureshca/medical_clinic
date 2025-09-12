@@ -5,14 +5,13 @@ from datetime import datetime, timedelta
 import mysql.connector
 from dotenv import load_dotenv
 import os
-
+import hashlib
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback-secret-key')
 
-# Flask-Login setup
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -20,6 +19,7 @@ login_manager.login_view = 'login'
 @login_manager.user_loader
 def load_user(user_id):
     return User.get(user_id)
+
 
 # Routes
 @app.route('/')
@@ -236,7 +236,10 @@ def admin_add_doctor():
             last_name = request.form['last_name']
             position = request.form['position']
             login = request.form['login']
-            password = request.form['password']  # Получаем пароль из формы
+            password = request.form['password']
+            
+            # Хешируем пароль
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
             
             # Проверяем, существует ли уже такой логин
             conn = get_db_connection()
@@ -252,7 +255,7 @@ def admin_add_doctor():
             cursor.execute('''
                 INSERT INTO doctors (first_name, last_name, position, login, password_hash)
                 VALUES (%s, %s, %s, %s, %s)
-            ''', (first_name, last_name, position, login, password))
+            ''', (first_name, last_name, position, login, password_hash))
             
             conn.commit()
             cursor.close()
@@ -281,7 +284,10 @@ def admin_add_patient():
             date_of_birth = request.form['date_of_birth']
             address = request.form['address']
             login = request.form['login']
-            password = request.form['password']  # Получаем пароль из формы
+            password = request.form['password']
+            
+            # Хешируем пароль
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
             
             # Проверяем, существует ли уже такой логин
             conn = get_db_connection()
@@ -297,7 +303,7 @@ def admin_add_patient():
             cursor.execute('''
                 INSERT INTO patients (first_name, last_name, gender, date_of_birth, address, login, password_hash)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (first_name, last_name, gender, date_of_birth, address, login, password))
+            ''', (first_name, last_name, gender, date_of_birth, address, login, password_hash))
             
             conn.commit()
             cursor.close()
