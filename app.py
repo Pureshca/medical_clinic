@@ -554,6 +554,95 @@ def patient_visit_detail(visit_id):
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route('/admin/search-patients', methods=['POST'])
+@login_required
+def admin_search_patients():
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Доступ запрещен'}), 403
+    
+    search_type = request.json.get('search_type')
+    search_query = request.json.get('search_query')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        if search_type == 'visit_date':
+            # Поиск по дате визита
+            cursor.execute('''
+                SELECT DISTINCT p.* 
+                FROM patients p
+                JOIN visits v ON p.id = v.patient_id
+                WHERE DATE(v.date) = %s
+            ''', (search_query,))
+        
+        elif search_type == 'diagnosis':
+            # Поиск по диагнозу
+            cursor.execute('''
+                SELECT DISTINCT p.* 
+                FROM patients p
+                JOIN visits v ON p.id = v.patient_id
+                WHERE v.diagnosis LIKE %s
+            ''', (f'%{search_query}%',))
+        
+        elif search_type == 'side_effects':
+            # Поиск по побочным эффектам лекарств
+            cursor.execute('''
+                SELECT DISTINCT p.* 
+                FROM patients p
+                JOIN visits v ON p.id = v.patient_id
+                JOIN visit_medicines vm ON v.id = vm.visit_id
+                JOIN medicines m ON vm.medicine_id = m.id
+                WHERE m.side_effects LIKE %s
+            ''', (f'%{search_query}%',))
+        
+        patients = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return jsonify(patients)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/search-suggestions', methods=['POST'])
+@login_required
+def admin_search_suggestions():
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Доступ запрещен'}), 403
+    
+    search_type = request.json.get('search_type')
+    search_query = request.json.get('search_query')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        if search_type == 'diagnosis':
+            cursor.execute('''
+                SELECT DISTINCT diagnosis as suggestion 
+                FROM visits 
+                WHERE diagnosis LIKE %s 
+                LIMIT 10
+            ''', (f'%{search_query}%',))
+        
+        elif search_type == 'side_effects':
+            cursor.execute('''
+                SELECT DISTINCT side_effects as suggestion 
+                FROM medicines 
+                WHERE side_effects LIKE %s 
+                LIMIT 10
+            ''', (f'%{search_query}%',))
+        
+        suggestions = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return jsonify(suggestions)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

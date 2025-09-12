@@ -70,52 +70,54 @@
             <div class="card-header bg-white py-3">
                 <h5 class="mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Статистика</h5>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <div class="card bg-light border-0">
-                            <div class="card-body">
-                                <h6 class="card-title">Визиты по дате</h6>
-                                <div class="input-group mb-2">
-                                    <input type="date" class="form-control" id="dateInput">
-                                    <button class="btn btn-primary" onclick="getVisitsByDate()">
-                                        <i class="fas fa-search"></i>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Поиск пациентов</h5>
+                </div>
+                <div class="card-body">
+                    <form id="searchForm">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Тип поиска</label>
+                                    <select class="form-select" id="searchType">
+                                        <option value="visit_date">По дате визита</option>
+                                        <option value="diagnosis">По диагнозу</option>
+                                        <option value="side_effects">По побочным эффектам</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Запрос поиска</label>
+                                    <input type="text" class="form-control" id="searchQuery"
+                                        placeholder="Введите запрос для поиска">
+                                    <div id="suggestions" class="list-group mt-2"
+                                        style="display: none; position: absolute; z-index: 1000; width: 100%;"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-primary w-100" onclick="searchPatients()">
+                                        Найти пациентов
                                     </button>
                                 </div>
-                                <div id="dateResult" class="mt-2 small"></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card bg-light border-0">
-                            <div class="card-body">
-                                <h6 class="card-title">Пациенты по диагнозу</h6>
-                                <div class="input-group mb-2">
-                                    <input type="text" class="form-control" id="diagnosisInput" placeholder="Введите диагноз">
-                                    <button class="btn btn-primary" onclick="getPatientsByDiagnosis()">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                                <div id="diagnosisResult" class="mt-2 small"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card bg-light border-0">
-                            <div class="card-body">
-                                <h6 class="card-title">Побочные эффекты лекарства</h6>
-                                <div class="input-group mb-2">
-                                    <input type="text" class="form-control" id="medicineInput" placeholder="Название лекарства">
-                                    <button class="btn btn-primary" onclick="getMedicineSideEffects()">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                                <div id="medicineResult" class="mt-2 small"></div>
-                            </div>
-                        </div>
-                    </div>
+                    </form>
                 </div>
             </div>
+
+            <div class="card mb-4" id="searchResultsCard" style="display: none;">
+                <div class="card-header">
+                    <h5>Результаты поиска</h5>
+                </div>
+                <div class="card-body">
+                    <div id="searchResults"></div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
@@ -181,19 +183,19 @@
 
 {% block scripts %}
 <script>
-function showVisitDetails(visitId) {
-    fetch(`/admin/visits/${visitId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                $('#visitDetails').html(`<div class="alert alert-danger">${data.error}</div>`);
-            } else {
-                let html = `
+    function showVisitDetails(visitId) {
+        fetch(`/admin/visits/${visitId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    $('#visitDetails').html(`<div class="alert alert-danger">${data.error}</div>`);
+                } else {
+                    let html = `
                     <div class="row">
                         <div class="col-md-6">
                             <h6>Пациент:</h6>
                             <p>${data.patient_first_name} ${data.patient_last_name}</p>
-                            <p>Дата рождения: ${new Date(data.date_of_birth).toLocaleDateString()}</p>
+                            <p>Дата рождения: ${formatDate(data.date_of_birth)}</p>
                             <p>Пол: ${data.gender === 'M' ? 'Мужской' : 'Женский'}</p>
                             <p>Адрес: ${data.address}</p>
                         </div>
@@ -207,7 +209,7 @@ function showVisitDetails(visitId) {
                     <div class="row">
                         <div class="col-md-6">
                             <h6>Дата визита:</h6>
-                            <p>${new Date(data.date).toLocaleString("ru-RU",{ timeZone: "UTC" })}</p>
+                            <p>${new Date(data.date).toLocaleString("ru-RU", { timeZone: "UTC" })}</p>
                             <h6>Местоположение:</h6>
                             <p>${data.location}</p>
                         </div>
@@ -220,11 +222,11 @@ function showVisitDetails(visitId) {
                     <h6>Назначения:</h6>
                     <p>${data.prescriptions || 'Не указаны'}</p>
                 `;
-                
-                if (data.medicines && data.medicines.length > 0) {
-                    html += `<hr><h6>Назначенные лекарства:</h6>`;
-                    data.medicines.forEach(med => {
-                        html += `
+
+                    if (data.medicines && data.medicines.length > 0) {
+                        html += `<hr><h6>Назначенные лекарства:</h6>`;
+                        data.medicines.forEach(med => {
+                            html += `
                             <div class="card mb-2">
                                 <div class="card-body">
                                     <h6>${med.name}</h6>
@@ -235,103 +237,297 @@ function showVisitDetails(visitId) {
                                 </div>
                             </div>
                         `;
-                    });
+                        });
+                    }
+
+                    $('#visitDetails').html(html);
                 }
-                
-                $('#visitDetails').html(html);
-            }
-            $('#visitModal').modal('show');
+                $('#visitModal').modal('show');
+            })
+            .catch(error => {
+                $('#visitDetails').html('<div class="alert alert-danger">Ошибка загрузки данных</div>');
+                $('#visitModal').modal('show');
+            });
+    }
+
+    function getVisitsByDate() {
+        const date = $('#dateInput').val();
+        if (!date) {
+            $('#dateResult').html('<div class="alert alert-warning">Введите дату</div>');
+            return;
+        }
+
+        fetch('/admin/stats/visits-by-date', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ date: date })
         })
-        .catch(error => {
-            $('#visitDetails').html('<div class="alert alert-danger">Ошибка загрузки данных</div>');
-            $('#visitModal').modal('show');
-        });
-}
-
-function getVisitsByDate() {
-    const date = $('#dateInput').val();
-    if (!date) {
-        $('#dateResult').html('<div class="alert alert-warning">Введите дату</div>');
-        return;
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    $('#dateResult').html(`<div class="alert alert-danger">${data.error}</div>`);
+                } else {
+                    $('#dateResult').html(`<div class="alert alert-success">Визитов: ${data.visit_count}</div>`);
+                }
+            })
+            .catch(error => {
+                $('#dateResult').html('<div class="alert alert-danger">Ошибка</div>');
+            });
     }
-    
-    fetch('/admin/stats/visits-by-date', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ date: date })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            $('#dateResult').html(`<div class="alert alert-danger">${data.error}</div>`);
-        } else {
-            $('#dateResult').html(`<div class="alert alert-success">Визитов: ${data.visit_count}</div>`);
+
+    function getPatientsByDiagnosis() {
+        const diagnosis = $('#diagnosisInput').val();
+        if (!diagnosis) {
+            $('#diagnosisResult').html('<div class="alert alert-warning">Введите диагноз</div>');
+            return;
         }
-    })
-    .catch(error => {
-        $('#dateResult').html('<div class="alert alert-danger">Ошибка</div>');
-    });
-}
 
-function getPatientsByDiagnosis() {
-    const diagnosis = $('#diagnosisInput').val();
-    if (!diagnosis) {
-        $('#diagnosisResult').html('<div class="alert alert-warning">Введите диагноз</div>');
-        return;
+        fetch('/admin/stats/patients-by-diagnosis', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ diagnosis: diagnosis })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    $('#diagnosisResult').html(`<div class="alert alert-danger">${data.error}</div>`);
+                } else {
+                    $('#diagnosisResult').html(`<div class="alert alert-success">Пациентов: ${data.patient_count}</div>`);
+                }
+            })
+            .catch(error => {
+                $('#diagnosisResult').html('<div class="alert alert-danger">Ошибка</div>');
+            });
     }
-    
-    fetch('/admin/stats/patients-by-diagnosis', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ diagnosis: diagnosis })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            $('#diagnosisResult').html(`<div class="alert alert-danger">${data.error}</div>`);
-        } else {
-            $('#diagnosisResult').html(`<div class="alert alert-success">Пациентов: ${data.patient_count}</div>`);
+
+    function getMedicineSideEffects() {
+        const medicineName = $('#medicineInput').val();
+        if (!medicineName) {
+            $('#medicineResult').html('<div class="alert alert-warning">Введите название лекарства</div>');
+            return;
         }
-    })
-    .catch(error => {
-        $('#diagnosisResult').html('<div class="alert alert-danger">Ошибка</div>');
-    });
-}
 
-function getMedicineSideEffects() {
-    const medicineName = $('#medicineInput').val();
-    if (!medicineName) {
-        $('#medicineResult').html('<div class="alert alert-warning">Введите название лекарства</div>');
-        return;
-    }
-    
-    fetch('/admin/stats/medicine-side-effects', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ medicine_name: medicineName })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            $('#medicineResult').html(`<div class="alert alert-danger">${data.error}</div>`);
-        } else {
-            $('#medicineResult').html(`
+        fetch('/admin/stats/medicine-side-effects', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ medicine_name: medicineName })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    $('#medicineResult').html(`<div class="alert alert-danger">${data.error}</div>`);
+                } else {
+                    $('#medicineResult').html(`
                 <div class="alert alert-info">
                     <strong>${data.medicine_name}:</strong><br>
                     ${data.side_effects || 'Побочные эффекты не указаны'}
                 </div>
             `);
+                }
+            })
+            .catch(error => {
+                $('#medicineResult').html('<div class="alert alert-danger">Ошибка</div>');
+            });
+    }
+    let searchTimeout;
+
+    // Функция для поиска пациентов
+    function searchPatients() {
+        const searchType = $('#searchType').val();
+        const searchQuery = $('#searchQuery').val();
+
+        if (!searchQuery) {
+            alert('Пожалуйста, введите запрос для поиска');
+            return;
         }
-    })
-    .catch(error => {
-        $('#medicineResult').html('<div class="alert alert-danger">Ошибка</div>');
+
+        fetch('/admin/search-patients', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                search_type: searchType,
+                search_query: searchQuery
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    $('#searchResults').html(`<div class="alert alert-danger">${data.error}</div>`);
+                } else {
+                    if (data.length === 0) {
+                        $('#searchResults').html('<div class="alert alert-info">Пациенты не найдены</div>');
+                    } else {
+                        let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>ID</th><th>Имя</th><th>Фамилия</th><th>Дата рождения</th><th>Пол</th><th>Адрес</th></tr></thead><tbody>';
+                        data.forEach(patient => {
+                            html += `
+                        <tr>
+                            <td>${patient.first_name}</td>
+                            <td>${patient.last_name}</td>
+                            <td>${formatDate(patient.date_of_birth)}</td>
+                            <td>${patient.gender === 'M' ? 'Мужской' : 'Женский'}</td>
+                            <td>${patient.address}</td>
+                        </tr>
+                    `;
+                        });
+                        html += '</tbody></table></div>';
+                        $('#searchResults').html(html);
+                    }
+                    $('#searchResultsCard').show();
+                }
+            })
+            .catch(error => {
+                $('#searchResults').html('<div class="alert alert-danger">Ошибка при поиске</div>');
+                $('#searchResultsCard').show();
+            });
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return 'Не указана';
+
+        let date;
+
+        // Пытаемся разобрать разные форматы дат
+        if (typeof dateString === 'string' && dateString.includes('GMT')) {
+            // Формат: Tue, 11 Nov 1986 00:00:00 GMT
+            date = new Date(dateString);
+        } else if (typeof dateString === 'string' && dateString.includes('-')) {
+            // Формат: 1986-11-11 (ISO)
+            date = new Date(dateString);
+        } else if (typeof dateString === 'string') {
+            // Попытка разобрать другие форматы
+            date = new Date(dateString);
+        } else {
+            // Если это уже объект Date
+            date = dateString;
+        }
+
+        // Проверяем, является ли дата валидной
+        if (isNaN(date.getTime())) {
+            return 'Неверная дата';
+        }
+
+        // Форматируем дату в формате DD.MM.YYYY
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+
+        return `${day}.${month}.${year}`;
+    }
+
+    // Функция для получения подсказок
+    function getSuggestions() {
+        const searchType = $('#searchType').val();
+        const searchQuery = $('#searchQuery').val();
+
+        if (searchQuery.length < 2) {
+            $('#suggestions').hide();
+            return;
+        }
+
+        // Очищаем предыдущий таймаут
+        clearTimeout(searchTimeout);
+
+        // Устанавливаем новый таймаут
+        searchTimeout = setTimeout(() => {
+            fetch('/admin/search-suggestions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    search_type: searchType,
+                    search_query: searchQuery
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        $('#suggestions').hide();
+                    } else {
+                        if (data.length > 0) {
+                            let html = '';
+                            data.forEach(item => {
+                                // Для побочных эффектов разбиваем строку по запятым
+                                if (searchType === 'side_effects') {
+                                    const effects = item.suggestion.split(',');
+                                    effects.forEach(effect => {
+                                        if (effect.trim().toLowerCase().includes(searchQuery.toLowerCase())) {
+                                            html += `<a href="#" class="list-group-item list-group-item-action" onclick="selectSuggestion('${effect.trim()}')">${effect.trim()}</a>`;
+                                        }
+                                    });
+                                } else {
+                                    html += `<a href="#" class="list-group-item list-group-item-action" onclick="selectSuggestion('${item.suggestion}')">${item.suggestion}</a>`;
+                                }
+                            });
+                            $('#suggestions').html(html).show();
+                        } else {
+                            $('#suggestions').hide();
+                        }
+                    }
+                })
+                .catch(error => {
+                    $('#suggestions').hide();
+                });
+        }, 300); // Задержка 300 мс
+    }
+
+    // Функция для выбора подсказки
+    function selectSuggestion(suggestion) {
+        $('#searchQuery').val(suggestion);
+        $('#suggestions').hide();
+    }
+
+    // Обработчики событий
+    $(document).ready(function () {
+        $('#searchQuery').on('input', getSuggestions);
+
+        // Скрываем подсказки при клике вне поля ввода
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('#searchQuery, #suggestions').length) {
+                $('#suggestions').hide();
+            }
+        });
+
+        // Обработка нажатия Enter в поле поиска
+        $('#searchQuery').on('keypress', function (e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                searchPatients();
+            }
+        });
+
+        // Изменение типа поля ввода при выборе типа поиска
+        $('#searchType').change(function () {
+            const searchType = $(this).val();
+            const searchQuery = $('#searchQuery');
+
+            if (searchType === 'visit_date') {
+                searchQuery.attr('type', 'date');
+                searchQuery.attr('placeholder', 'Выберите дату');
+            } else {
+                searchQuery.attr('type', 'text');
+                if (searchType === 'diagnosis') {
+                    searchQuery.attr('placeholder', 'Введите диагноз');
+                } else {
+                    searchQuery.attr('placeholder', 'Введите побочный эффект');
+                }
+            }
+
+            // Очищаем подсказки и поле ввода
+            $('#suggestions').hide();
+            searchQuery.val('');
+        });
+
+        // Инициализируем тип поля ввода
+        $('#searchType').trigger('change');
     });
-}
 </script>
 {% endblock %}
