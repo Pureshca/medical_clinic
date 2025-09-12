@@ -486,6 +486,34 @@ def doctor_add_visit():
     except Exception as e:
         flash(f'Ошибка: {str(e)}', 'error')
         return render_template('doctor/add_visit.html', patients=[], medicines=[])
+    
+@app.route('/admin/delete-visit/<int:visit_id>', methods=['POST'])
+@login_required
+def admin_delete_visit(visit_id):
+    if current_user.role != 'admin':
+        flash('Доступ запрещен', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Сначала удаляем связанные записи о лекарствах
+        cursor.execute('DELETE FROM visit_medicines WHERE visit_id = %s', (visit_id,))
+        
+        # Затем удаляем сам визит
+        cursor.execute('DELETE FROM visits WHERE id = %s', (visit_id,))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        flash('Визит успешно удален', 'success')
+        return redirect(url_for('admin_dashboard'))
+    
+    except Exception as e:
+        flash(f'Ошибка при удалении визита: {str(e)}', 'error')
+        return redirect(url_for('admin_dashboard'))
 
 # Patient routes
 @app.route('/patient/dashboard')
