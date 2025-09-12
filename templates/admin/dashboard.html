@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ total_visits }}</h5>
+                <p class="card-text">Всего визитов</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ total_patients }}</h5>
+                <p class="card-text">Пациентов</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ total_doctors }}</h5>
+                <p class="card-text">Врачей</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Статистика</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Визиты по дате</label>
+                    <input type="date" class="form-control" id="dateInput">
+                    <button class="btn btn-sm btn-primary mt-2" onclick="getVisitsByDate()">Показать</button>
+                    <div id="dateResult" class="mt-2"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Пациенты по диагнозу</label>
+                    <input type="text" class="form-control" id="diagnosisInput" placeholder="Введите диагноз">
+                    <button class="btn btn-sm btn-primary mt-2" onclick="getPatientsByDiagnosis()">Показать</button>
+                    <div id="diagnosisResult" class="mt-2"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Побочные эффекты лекарства</label>
+                    <input type="text" class="form-control" id="medicineInput" placeholder="Название лекарства">
+                    <button class="btn btn-sm btn-primary mt-2" onclick="getMedicineSideEffects()">Показать</button>
+                    <div id="medicineResult" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>Все визиты</h5>
+        <div>
+            <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-success btn-sm">Добавить врача</a>
+            <a href="{{ url_for('admin_add_patient') }}" class="btn btn-info btn-sm">Добавить пациента</a>
+            <a href="{{ url_for('admin_add_medicine') }}" class="btn btn-warning btn-sm">Добавить лекарство</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Пациент</th>
+                        <th>Врач</th>
+                        <th>Диагноз</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for visit in visits %}
+                    <tr>
+                        <td>{{ visit.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                        <td>{{ visit.patient_first_name }} {{ visit.patient_last_name }}</td>
+                        <td>{{ visit.doctor_first_name }} {{ visit.doctor_last_name }}</td>
+                        <td>{{ visit.diagnosis[:50] }}{% if visit.diagnosis|length > 50 %}...{% endif %}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="showVisitDetails('{{ visit.id }}')">
+                                Подробнее
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for visit details -->
+<div class="modal fade" id="visitModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Детали визита</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="visitDetails">
+                Загрузка...
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showVisitDetails(visitId) {
+    fetch(`/admin/visits/${visitId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                $('#visitDetails').html(`<div class="alert alert-danger">${data.error}</div>`);
+            } else {
+                let html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Пациент:</h6>
+                            <p>${data.patient_first_name} ${data.patient_last_name}</p>
+                            <p>Дата рождения: ${new Date(data.date_of_birth).toLocaleDateString()}</p>
+                            <p>Пол: ${data.gender === 'M' ? 'Мужской' : 'Женский'}</p>
+                            <p>Адрес: ${data.address}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Врач:</h6>
+                            <p>${data.doctor_first_name} ${data.doctor_last_name}</p>
+                            <p>Должность: ${data.position}</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Дата визита:</h6>
+                            <p>${new Date(data.date).toLocaleString()}</p>
+                            <h6>Местоположение:</h6>
+                            <p>${data.location}</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>Симптомы:</h6>
+                    <p>${data.symptoms || 'Не указаны'}</p>
+                    <h6>Диагноз:</h6>
+                    <p>${data.diagnosis || 'Не указан'}</p>
+                    <h6>Назначения:</h6>
+                    <p>${data.prescriptions || 'Не указаны'}</p>
+                `;
+                
+                if (data.medicines && data.medicines.length > 0) {
+                    html += `<hr><h6>Назначенные лекарства:</h6>`;
+                    data.medicines.forEach(med => {
+                        html += `
+                            <div class="card mb-2">
+                                <div class="card-body">
+                                    <h6>${med.name}</h6>
+                                    <p><strong>Описание:</strong> ${med.description || 'Нет'}</p>
+                                    <p><strong>Побочные эффекты:</strong> ${med.side_effects || 'Нет'}</p>
+                                    <p><strong>Способ применения:</strong> ${med.usage_method || 'Нет'}</p>
+                                    <p><strong>Инструкции врача:</strong> ${med.doctor_instructions || 'Нет'}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                $('#visitDetails').html(html);
+            }
+            $('#visitModal').modal('show');
+        })
+        .catch(error => {
+            $('#visitDetails').html('<div class="alert alert-danger">Ошибка загрузки данных</div>');
+            $('#visitModal').modal('show');
+        });
+}
+
+function getVisitsByDate() {
+    const date = $('#dateInput').val();
+    if (!date) {
+        $('#dateResult').html('<div class="alert alert-warning">Введите дату</div>');
+        return;
+    }
+    
+    fetch('/admin/stats/visits-by-date', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date: date })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            $('#dateResult').html(`<div class="alert alert-danger">${data.error}</div>`);
+        } else {
+            $('#dateResult').html(`<div class="alert alert-success">Визитов: ${data.visit_count}</div>`);
+        }
+    })
+    .catch(error => {
+        $('#dateResult').html('<div class="alert alert-danger">Ошибка</div>');
+    });
+}
+
+function getPatientsByDiagnosis() {
+    const diagnosis = $('#diagnosisInput').val();
+    if (!diagnosis) {
+        $('#diagnosisResult').html('<div class="alert alert-warning">Введите диагноз</div>');
+        return;
+    }
+    
+    fetch('/admin/stats/patients-by-diagnosis', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ diagnosis: diagnosis })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            $('#diagnosisResult').html(`<div class="alert alert-danger">${data.error}</div>`);
+        } else {
+            $('#diagnosisResult').html(`<div class="alert alert-success">Пациентов: ${data.patient_count}</div>`);
+        }
+    })
+    .catch(error => {
+        $('#diagnosisResult').html('<div class="alert alert-danger">Ошибка</div>');
+    });
+}
+
+function getMedicineSideEffects() {
+    const medicineName = $('#medicineInput').val();
+    if (!medicineName) {
+        $('#medicineResult').html('<div class="alert alert-warning">Введите название лекарства</div>');
+        return;
+    }
+    
+    fetch('/admin/stats/medicine-side-effects', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ medicine_name: medicineName })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            $('#medicineResult').html(`<div class="alert alert-danger">${data.error}</div>`);
+        } else {
+            $('#medicineResult').html(`
+                <div class="alert alert-info">
+                    <strong>${data.medicine_name}:</strong><br>
+                    ${data.side_effects || 'Побочные эффекты не указаны'}
+                </div>
+            `);
+        }
+    })
+    .catch(error => {
+        $('#medicineResult').html('<div class="alert alert-danger">Ошибка</div>');
+    });
+}
+</script>
+{% endblock %}

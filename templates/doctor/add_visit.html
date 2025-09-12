@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Добавить новый визит</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="visitForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="patient_id" class="form-label">Пациент *</label>
+                                <select class="form-select" id="patient_id" name="patient_id" required>
+                                    <option value="">Выберите пациента</option>
+                                    {% for patient in patients %}
+                                    <option value="{{ patient.id }}">{{ patient.last_name }} {{ patient.first_name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Выберите пациента из списка</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date" class="form-label">Дата и время визита *</label>
+                                <input type="datetime-local" class="form-control" id="date" name="date" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Местоположение *</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
+                        <div class="form-text">Например: Кабинет 101, Стационар, Вызов на дом</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="symptoms" class="form-label">Симптомы и жалобы</label>
+                        <textarea class="form-control" id="symptoms" name="symptoms" rows="3" 
+                                  placeholder="Опишите симптомы пациента..."></textarea>
+                        <div class="form-text">Подробное описание симптомов и жалоб пациента</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="diagnosis" class="form-label">Диагноз</label>
+                        <textarea class="form-control" id="diagnosis" name="diagnosis" rows="3" 
+                                  placeholder="Поставленный диагноз..."></textarea>
+                        <div class="form-text">Медицинский диагноз на основе осмотра</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="prescriptions" class="form-label">Назначения и рекомендации</label>
+                        <textarea class="form-control" id="prescriptions" name="prescriptions" rows="3" 
+                                  placeholder="Рекомендации по лечению..."></textarea>
+                        <div class="form-text">Общие рекомендации и назначения</div>
+                    </div>
+
+                    <hr>
+                    <h6>Назначение лекарств</h6>
+                    
+                    <div id="medicines-container">
+                        <div class="medicine-row row mb-3">
+                            <div class="col-md-6">
+                                <select class="form-select medicine-select" name="medicines[]">
+                                    <option value="">Выберите лекарство</option>
+                                    {% for medicine in medicines %}
+                                    <option value="{{ medicine.id }}" data-side-effects="{{ medicine.side_effects|default('', true) }}" 
+                                            data-usage="{{ medicine.usage_method|default('', true) }}">
+                                        {{ medicine.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" name="instructions[]" 
+                                       placeholder="Инструкции по применению">
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-danger btn-sm remove-medicine" disabled>
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="add-medicine">
+                        + Добавить еще лекарство
+                    </button>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Информация о лекарстве</h6>
+                                    <div id="medicine-info">
+                                        <p class="text-muted">Выберите лекарство для просмотра информации</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Сохранить визит</button>
+                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Добавление нового поля для лекарства
+    $('#add-medicine').click(function() {
+        const newRow = $(`
+            <div class="medicine-row row mb-3">
+                <div class="col-md-6">
+                    <select class="form-select medicine-select" name="medicines[]">
+                        <option value="">Выберите лекарство</option>
+                        {% for medicine in medicines %}
+                        <option value="{{ medicine.id }}" data-side-effects="{{ medicine.side_effects|default('', true) }}" 
+                                data-usage="{{ medicine.usage_method|default('', true) }}">
+                            {{ medicine.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="instructions[]" 
+                           placeholder="Инструкции по применению">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger btn-sm remove-medicine">
+                        ✕
+                    </button>
+                </div>
+            </div>
+        `);
+        
+        $('#medicines-container').append(newRow);
+        updateRemoveButtons();
+    });
+
+    // Удаление поля лекарства
+    $(document).on('click', '.remove-medicine', function() {
+        if ($('.medicine-row').length > 1) {
+            $(this).closest('.medicine-row').remove();
+            updateRemoveButtons();
+        }
+    });
+
+    // Показ информации о лекарстве
+    $(document).on('change', '.medicine-select', function() {
+        const selectedOption = $(this).find('option:selected');
+        const sideEffects = selectedOption.data('side-effects');
+        const usageMethod = selectedOption.data('usage');
+        
+        let infoHtml = '';
+        if (selectedOption.val()) {
+            infoHtml = `
+                <p><strong>${selectedOption.text()}</strong></p>
+                ${sideEffects ? `<p><strong>Побочные эффекты:</strong><br>${sideEffects}</p>` : ''}
+                ${usageMethod ? `<p><strong>Способ применения:</strong><br>${usageMethod}</p>` : ''}
+            `;
+        } else {
+            infoHtml = '<p class="text-muted">Выберите лекарство для просмотра информации</p>';
+        }
+        
+        $('#medicine-info').html(infoHtml);
+    });
+
+    function updateRemoveButtons() {
+        $('.remove-medicine').prop('disabled', $('.medicine-row').length <= 1);
+    }
+
+    // Валидация формы
+    $('#visitForm').on('submit', function(e) {
+        let isValid = true;
+        const requiredFields = $('#visitForm [required]');
+        
+        requiredFields.each(function() {
+            if (!$(this).val()) {
+                isValid = false;
+                $(this).addClass('is-invalid');
+            } else {
+                $(this).removeClass('is-invalid');
+            }
+        });
+
+        if (!isValid) {
+            e.preventDefault();
+            alert('Пожалуйста, заполните все обязательные поля (отмечены *)');
+        }
+    });
+});
+</script>
+
+<style>
+.medicine-row {
+    align-items: center;
+}
+.remove-medicine {
+    padding: 0.25rem 0.5rem;
+}
+.is-invalid {
+    border-color: #dc3545;
+}
+</style>
+{% endblock %}

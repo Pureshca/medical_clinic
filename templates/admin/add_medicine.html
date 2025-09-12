@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Добавить лекарство</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Название лекарства *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">Полное торговое название препарата</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Описание</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        <div class="form-text">Краткое описание препарата и его назначение</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="side_effects" class="form-label">Побочные эффекты</label>
+                        <textarea class="form-control" id="side_effects" name="side_effects" rows="3"></textarea>
+                        <div class="form-text">Возможные побочные эффекты (через запятую)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="usage_method" class="form-label">Способ применения</label>
+                        <textarea class="form-control" id="usage_method" name="usage_method" rows="3"></textarea>
+                        <div class="form-text">Инструкция по применению препарата</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Добавить лекарство</button>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Назад к панели</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
