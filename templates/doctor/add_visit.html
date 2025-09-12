@@ -1,16 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="page-header">
-    <h2 class="fw-bold"><i class="fas fa-calendar-plus me-2"></i>Добавить визит</h2>
-    <p class="text-muted">Заполните информацию о новом визите пациента</p>
-</div>
-
 <div class="row justify-content-center">
     <div class="col-md-10">
         <div class="card">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0">Информация о визите</h5>
+            <div class="card-header">
+                <h5 class="card-title">Добавить новый визит</h5>
             </div>
             <div class="card-body">
                 <form method="POST" id="visitForm">
@@ -21,7 +16,8 @@
                                 <select class="form-select" id="patient_id" name="patient_id" required>
                                     <option value="">Выберите пациента</option>
                                     {% for patient in patients %}
-                                    <option value="{{ patient.id }}">{{ patient.last_name }} {{ patient.first_name }}</option>
+                                    <option value="{{ patient.id }}">{{ patient.last_name }} {{ patient.first_name }}
+                                    </option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -36,55 +32,65 @@
 
                     <div class="mb-3">
                         <label for="location" class="form-label fw-semibold">Местоположение *</label>
-                        <input type="text" class="form-control" id="location" name="location" required placeholder="Например: Кабинет 101, Стационар, Вызов на дом">
+                        <input type="text" class="form-control" id="location" name="location" required
+                            placeholder="Например: Кабинет 101, Стационар, Вызов на дом">
                     </div>
 
                     <div class="mb-3">
                         <label for="symptoms" class="form-label fw-semibold">Симптомы и жалобы</label>
-                        <textarea class="form-control" id="symptoms" name="symptoms" rows="3" placeholder="Опишите симптомы пациента..."></textarea>
+                        <textarea class="form-control" id="symptoms" name="symptoms" rows="3"
+                            placeholder="Опишите симптомы пациента..."></textarea>
                     </div>
 
                     <div class="mb-3">
                         <label for="diagnosis" class="form-label fw-semibold">Диагноз</label>
-                        <textarea class="form-control" id="diagnosis" name="diagnosis" rows="3" placeholder="Поставленный диагноз..."></textarea>
+                        <textarea class="form-control" id="diagnosis" name="diagnosis" rows="3"
+                            placeholder="Поставленный диагноз..."></textarea>
                     </div>
 
                     <div class="mb-3">
                         <label for="prescriptions" class="form-label fw-semibold">Назначения и рекомендации</label>
-                        <textarea class="form-control" id="prescriptions" name="prescriptions" rows="3" placeholder="Рекомендации по лечению..."></textarea>
+                        <textarea class="form-control" id="prescriptions" name="prescriptions" rows="3"
+                            placeholder="Рекомендации по лечению..."></textarea>
                     </div>
 
                     <hr>
-                    <h5 class="mb-3"><i class="fas fa-pills me-2"></i>Назначение лекарств</h5>
-                    
+                    <h6>Назначение лекарств</h6>
+
                     <div id="medicines-container">
                         <div class="medicine-row row mb-3">
                             <div class="col-md-6">
                                 <select class="form-select medicine-select" name="medicines[]">
                                     <option value="">Выберите лекарство</option>
                                     {% for medicine in medicines %}
-                                    <option value="{{ medicine.id }}" data-side-effects="{{ medicine.side_effects|default('', true) }}" 
-                                            data-usage="{{ medicine.usage_method|default('', true) }}">
+                                    <option value="{{ medicine.id }}"
+                                        data-side-effects="{{ medicine.side_effects|default('', true) }}"
+                                        data-usage="{{ medicine.usage_method|default('', true) }}">
                                         {{ medicine.name }}
                                     </option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-5">
-                                <input type="text" class="form-control" name="instructions[]" 
-                                       placeholder="Инструкции по применению">
+                                <input type="text" class="form-control" name="instructions[]"
+                                    placeholder="Инструкции по применению">
                             </div>
                             <div class="col-md-1">
                                 <button type="button" class="btn btn-danger btn-sm remove-medicine" disabled>
-                                    <i class="fas fa-times"></i>
+                                    ✕
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="add-medicine">
-                        <i class="fas fa-plus me-1"></i> Добавить еще лекарство
+                        + Добавить еще лекарство
                     </button>
+
+                    <!-- Добавим контейнер для уведомлений о дубликатах -->
+                    <div id="duplicate-alert" class="alert alert-warning" style="display: none;">
+                        Это лекарство уже добавлено в визит. Пожалуйста, выберите другое лекарство.
+                    </div>
 
                     <div class="row">
                         <div class="col-md-6">
@@ -100,13 +106,9 @@
                     </div>
 
                     <hr>
-                    <div class="d-flex mt-4">
-                        <button type="submit" class="btn btn-primary me-2">
-                            <i class="fas fa-save me-1"></i> Сохранить визит
-                        </button>
-                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> Отмена
-                        </a>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Сохранить визит</button>
+                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">Отмена</a>
                     </div>
                 </form>
             </div>
@@ -115,12 +117,13 @@
 </div>
 {% endblock %}
 
+
 {% block scripts %}
 <script>
-$(document).ready(function() {
-    // Добавление нового поля для лекарства
-    $('#add-medicine').click(function() {
-        const newRow = $(`
+    $(document).ready(function () {
+        // Добавление нового поля для лекарства
+        $('#add-medicine').click(function () {
+            const newRow = $(`
             <div class="medicine-row row mb-3">
                 <div class="col-md-6">
                     <select class="form-select medicine-select" name="medicines[]">
@@ -144,74 +147,143 @@ $(document).ready(function() {
                 </div>
             </div>
         `);
-        
-        $('#medicines-container').append(newRow);
-        updateRemoveButtons();
-    });
 
-    // Удаление поля лекарства
-    $(document).on('click', '.remove-medicine', function() {
-        if ($('.medicine-row').length > 1) {
-            $(this).closest('.medicine-row').remove();
+            $('#medicines-container').append(newRow);
             updateRemoveButtons();
-        }
-    });
+        });
 
-    // Показ информации о лекарстве
-    $(document).on('change', '.medicine-select', function() {
-        const selectedOption = $(this).find('option:selected');
-        const sideEffects = selectedOption.data('side-effects');
-        const usageMethod = selectedOption.data('usage');
-        
-        let infoHtml = '';
-        if (selectedOption.val()) {
-            infoHtml = `
-                <p><strong>${selectedOption.text()}</strong></p>
-                ${sideEffects ? `<p><strong>Побочные эффекты:</strong><br>${sideEffects}</p>` : ''}
-                ${usageMethod ? `<p><strong>Способ применения:</strong><br>${usageMethod}</p>` : ''}
-            `;
-        } else {
-            infoHtml = '<p class="text-muted">Выберите лекарство для просмотра информации</p>';
-        }
-        
-        $('#medicine-info').html(infoHtml);
-    });
-
-    function updateRemoveButtons() {
-        $('.remove-medicine').prop('disabled', $('.medicine-row').length <= 1);
-    }
-
-    // Валидация формы
-    $('#visitForm').on('submit', function(e) {
-        let isValid = true;
-        const requiredFields = $('#visitForm [required]');
-        
-        requiredFields.each(function() {
-            if (!$(this).val()) {
-                isValid = false;
-                $(this).addClass('is-invalid');
-            } else {
-                $(this).removeClass('is-invalid');
+        // Удаление поля лекарства
+        $(document).on('click', '.remove-medicine', function () {
+            if ($('.medicine-row').length > 1) {
+                $(this).closest('.medicine-row').remove();
+                updateRemoveButtons();
+                checkForDuplicates(); // Проверяем дубликаты после удаления
             }
         });
 
-        if (!isValid) {
-            e.preventDefault();
-            alert('Пожалуйста, заполните все обязательные поля (отмечены *)');
+        // Функция для проверки дубликатов лекарств
+        function checkForDuplicates() {
+            const selectedMedicines = [];
+            let hasDuplicates = false;
+
+            $('.medicine-select').each(function () {
+                const medicineId = $(this).val();
+                if (medicineId) {
+                    if (selectedMedicines.includes(medicineId)) {
+                        hasDuplicates = true;
+                        $(this).addClass('is-duplicate');
+                    } else {
+                        selectedMedicines.push(medicineId);
+                        $(this).removeClass('is-duplicate');
+                    }
+                } else {
+                    $(this).removeClass('is-duplicate');
+                }
+            });
+
+            // Показываем или скрываем предупреждение
+            if (hasDuplicates) {
+                $('#duplicate-alert').show();
+            } else {
+                $('#duplicate-alert').hide();
+            }
+
+            return hasDuplicates;
         }
+
+        // Показ информации о лекарстве и проверка на дубликаты
+        $(document).on('change', '.medicine-select', function () {
+            const selectedOption = $(this).find('option:selected');
+            const sideEffects = selectedOption.data('side-effects');
+            const usageMethod = selectedOption.data('usage');
+
+            // Проверяем на дубликаты
+            const hasDuplicates = checkForDuplicates();
+
+            // Если есть дубликаты, показываем предупреждение
+            if (hasDuplicates && $(this).val()) {
+                // Не сбрасываем значение, но предупреждаем пользователя
+                $('#medicine-info').html(`
+                <div class="alert alert-warning">
+                    <strong>Внимание:</strong> Это лекарство уже добавлено в визит.
+                </div>
+                ${selectedOption.val() ? `
+                    <p><strong>${selectedOption.text()}</strong></p>
+                    ${sideEffects ? `<p><strong>Побочные эффекты:</strong><br>${sideEffects}</p>` : ''}
+                    ${usageMethod ? `<p><strong>Способ применения:</strong><br>${usageMethod}</p>` : ''}
+                ` : ''}
+            `);
+            } else {
+                // Нормальное отображение информации
+                let infoHtml = '';
+                if (selectedOption.val()) {
+                    infoHtml = `
+                    <p><strong>${selectedOption.text()}</strong></p>
+                    ${sideEffects ? `<p><strong>Побочные эффекты:</strong><br>${sideEffects}</p>` : ''}
+                    ${usageMethod ? `<p><strong>Способ применения:</strong><br>${usageMethod}</p>` : ''}
+                `;
+                } else {
+                    infoHtml = '<p class="text-muted">Выберите лекарство для просмотра информации</p>';
+                }
+
+                $('#medicine-info').html(infoHtml);
+            }
+        });
+
+        function updateRemoveButtons() {
+            $('.remove-medicine').prop('disabled', $('.medicine-row').length <= 1);
+        }
+
+        // Валидация формы с проверкой на дубликаты
+        $('#visitForm').on('submit', function (e) {
+            let isValid = true;
+            const requiredFields = $('#visitForm [required]');
+
+            requiredFields.each(function () {
+                if (!$(this).val()) {
+                    isValid = false;
+                    $(this).addClass('is-invalid');
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+            });
+
+            // Проверяем на дубликаты перед отправкой
+            const hasDuplicates = checkForDuplicates();
+            if (hasDuplicates) {
+                isValid = false;
+                alert('Пожалуйста, удалите дублирующиеся лекарства перед сохранением визита.');
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+                if (!hasDuplicates) {
+                    alert('Пожалуйста, заполните все обязательные поля (отмечены *)');
+                }
+            }
+        });
+
+        // Инициализируем проверку при загрузке
+        checkForDuplicates();
     });
-});
 </script>
 
 <style>
-.medicine-row {
-    align-items: center;
-}
-.remove-medicine {
-    padding: 0.25rem 0.5rem;
-}
-.is-invalid {
-    border-color: #dc3545;
-}
+    .medicine-row {
+        align-items: center;
+    }
+
+    .remove-medicine {
+        padding: 0.25rem 0.5rem;
+    }
+
+    .is-invalid {
+        border-color: #dc3545;
+    }
+
+    .is-duplicate {
+        border-color: #ffc107;
+        background-color: #fff3cd;
+    }
 </style>
 {% endblock %}
