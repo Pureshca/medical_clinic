@@ -78,19 +78,19 @@ class User(UserMixin):
             conn.close()
             
             if user:
-                #print(f"User found: {user}")
+                print(f"User found: {user}")
                 import hashlib
                 password_hash = hashlib.sha256(password.encode()).hexdigest()
-                #print(f"Input password hash: {password_hash}")
-                #print(f"Stored password hash: {user['password_hash']}")
+                print(f"Input password hash: {password_hash}")
+                print(f"Stored password hash: {user['password_hash']}")
                 
-                #if user['password_hash'] == password_hash:
-                    #print("Password matches!")
-                    #return User(user['id'], user['login'], user['role'])
-                #else:
-                    #print("Password does not match!")
+                if user['password_hash'] == password_hash:
+                    print("Password matches!")
+                    return User(user['id'], user['login'], user['role'])
+                else:
+                    print("Password does not match!")
             
             return None
         except Exception as e:
-            #print(f"Authentication error: {e}")
+            print(f"Authentication error: {e}")
             return None
