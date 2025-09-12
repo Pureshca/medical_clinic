@@ -1,64 +1,61 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="page-header">
+    <h2 class="fw-bold"><i class="fas fa-calendar-plus me-2"></i>Добавить визит</h2>
+    <p class="text-muted">Заполните информацию о новом визите пациента</p>
+</div>
+
 <div class="row justify-content-center">
     <div class="col-md-10">
         <div class="card">
-            <div class="card-header">
-                <h5 class="card-title">Добавить новый визит</h5>
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">Информация о визите</h5>
             </div>
             <div class="card-body">
                 <form method="POST" id="visitForm">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="patient_id" class="form-label">Пациент *</label>
+                                <label for="patient_id" class="form-label fw-semibold">Пациент *</label>
                                 <select class="form-select" id="patient_id" name="patient_id" required>
                                     <option value="">Выберите пациента</option>
                                     {% for patient in patients %}
                                     <option value="{{ patient.id }}">{{ patient.last_name }} {{ patient.first_name }}</option>
                                     {% endfor %}
                                 </select>
-                                <div class="form-text">Выберите пациента из списка</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="date" class="form-label">Дата и время визита *</label>
+                                <label for="date" class="form-label fw-semibold">Дата и время визита *</label>
                                 <input type="datetime-local" class="form-control" id="date" name="date" required>
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="location" class="form-label">Местоположение *</label>
-                        <input type="text" class="form-control" id="location" name="location" required>
-                        <div class="form-text">Например: Кабинет 101, Стационар, Вызов на дом</div>
+                        <label for="location" class="form-label fw-semibold">Местоположение *</label>
+                        <input type="text" class="form-control" id="location" name="location" required placeholder="Например: Кабинет 101, Стационар, Вызов на дом">
                     </div>
 
                     <div class="mb-3">
-                        <label for="symptoms" class="form-label">Симптомы и жалобы</label>
-                        <textarea class="form-control" id="symptoms" name="symptoms" rows="3" 
-                                  placeholder="Опишите симптомы пациента..."></textarea>
-                        <div class="form-text">Подробное описание симптомов и жалоб пациента</div>
+                        <label for="symptoms" class="form-label fw-semibold">Симптомы и жалобы</label>
+                        <textarea class="form-control" id="symptoms" name="symptoms" rows="3" placeholder="Опишите симптомы пациента..."></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label for="diagnosis" class="form-label">Диагноз</label>
-                        <textarea class="form-control" id="diagnosis" name="diagnosis" rows="3" 
-                                  placeholder="Поставленный диагноз..."></textarea>
-                        <div class="form-text">Медицинский диагноз на основе осмотра</div>
+                        <label for="diagnosis" class="form-label fw-semibold">Диагноз</label>
+                        <textarea class="form-control" id="diagnosis" name="diagnosis" rows="3" placeholder="Поставленный диагноз..."></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label for="prescriptions" class="form-label">Назначения и рекомендации</label>
-                        <textarea class="form-control" id="prescriptions" name="prescriptions" rows="3" 
-                                  placeholder="Рекомендации по лечению..."></textarea>
-                        <div class="form-text">Общие рекомендации и назначения</div>
+                        <label for="prescriptions" class="form-label fw-semibold">Назначения и рекомендации</label>
+                        <textarea class="form-control" id="prescriptions" name="prescriptions" rows="3" placeholder="Рекомендации по лечению..."></textarea>
                     </div>
 
                     <hr>
-                    <h6>Назначение лекарств</h6>
+                    <h5 class="mb-3"><i class="fas fa-pills me-2"></i>Назначение лекарств</h5>
                     
                     <div id="medicines-container">
                         <div class="medicine-row row mb-3">
@@ -79,14 +76,14 @@
                             </div>
                             <div class="col-md-1">
                                 <button type="button" class="btn btn-danger btn-sm remove-medicine" disabled>
-                                    ✕
+                                    <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="add-medicine">
-                        + Добавить еще лекарство
+                        <i class="fas fa-plus me-1"></i> Добавить еще лекарство
                     </button>
 
                     <div class="row">
@@ -103,9 +100,13 @@
                     </div>
 
                     <hr>
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">Сохранить визит</button>
-                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">Отмена</a>
+                    <div class="d-flex mt-4">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-save me-1"></i> Сохранить визит
+                        </button>
+                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Отмена
+                        </a>
                     </div>
                 </form>
             </div>

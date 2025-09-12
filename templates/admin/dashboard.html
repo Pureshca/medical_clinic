@@ -1,57 +1,119 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary mb-3">
-            <div class="card-body">
-                <h5 class="card-title">{{ total_visits }}</h5>
-                <p class="card-text">Всего визитов</p>
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h2 class="fw-bold">Панель управления</h2>
+    <div class="d-flex">
+        <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-primary me-2">
+            <i class="fas fa-user-md me-1"></i> Добавить врача
+        </a>
+        <a href="{{ url_for('admin_add_patient') }}" class="btn btn-success me-2">
+            <i class="fas fa-user-injured me-1"></i> Добавить пациента
+        </a>
+        <a href="{{ url_for('admin_add_medicine') }}" class="btn btn-info">
+            <i class="fas fa-pills me-1"></i> Добавить лекарство
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-white">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-muted mb-1">Всего визитов</h6>
+                        <h3 class="fw-bold mb-0 text-primary">{{ total_visits }}</h3>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-calendar-check fa-2x text-primary opacity-25"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-success mb-3">
-            <div class="card-body">
-                <h5 class="card-title">{{ total_patients }}</h5>
-                <p class="card-text">Пациентов</p>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-white">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-muted mb-1">Пациентов</h6>
+                        <h3 class="fw-bold mb-0 text-success">{{ total_patients }}</h3>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-user-injured fa-2x text-success opacity-25"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info mb-3">
-            <div class="card-body">
-                <h5 class="card-title">{{ total_doctors }}</h5>
-                <p class="card-text">Врачей</p>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-white">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-muted mb-1">Врачей</h6>
+                        <h3 class="fw-bold mb-0 text-info">{{ total_doctors }}</h3>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-user-md fa-2x text-info opacity-25"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-md-12">
         <div class="card">
-            <div class="card-header">Статистика</div>
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Статистика</h5>
+            </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">Визиты по дате</label>
-                    <input type="date" class="form-control" id="dateInput">
-                    <button class="btn btn-sm btn-primary mt-2" onclick="getVisitsByDate()">Показать</button>
-                    <div id="dateResult" class="mt-2"></div>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Пациенты по диагнозу</label>
-                    <input type="text" class="form-control" id="diagnosisInput" placeholder="Введите диагноз">
-                    <button class="btn btn-sm btn-primary mt-2" onclick="getPatientsByDiagnosis()">Показать</button>
-                    <div id="diagnosisResult" class="mt-2"></div>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Побочные эффекты лекарства</label>
-                    <input type="text" class="form-control" id="medicineInput" placeholder="Название лекарства">
-                    <button class="btn btn-sm btn-primary mt-2" onclick="getMedicineSideEffects()">Показать</button>
-                    <div id="medicineResult" class="mt-2"></div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light border-0">
+                            <div class="card-body">
+                                <h6 class="card-title">Визиты по дате</h6>
+                                <div class="input-group mb-2">
+                                    <input type="date" class="form-control" id="dateInput">
+                                    <button class="btn btn-primary" onclick="getVisitsByDate()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                                <div id="dateResult" class="mt-2 small"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light border-0">
+                            <div class="card-body">
+                                <h6 class="card-title">Пациенты по диагнозу</h6>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="diagnosisInput" placeholder="Введите диагноз">
+                                    <button class="btn btn-primary" onclick="getPatientsByDiagnosis()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                                <div id="diagnosisResult" class="mt-2 small"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light border-0">
+                            <div class="card-body">
+                                <h6 class="card-title">Побочные эффекты лекарства</h6>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="medicineInput" placeholder="Название лекарства">
+                                    <button class="btn btn-primary" onclick="getMedicineSideEffects()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                                <div id="medicineResult" class="mt-2 small"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -59,18 +121,13 @@
 </div>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5>Все визиты</h5>
-        <div>
-            <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-success btn-sm">Добавить врача</a>
-            <a href="{{ url_for('admin_add_patient') }}" class="btn btn-info btn-sm">Добавить пациента</a>
-            <a href="{{ url_for('admin_add_medicine') }}" class="btn btn-warning btn-sm">Добавить лекарство</a>
-        </div>
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list me-2 text-primary"></i>Все визиты</h5>
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
+            <table class="table table-hover">
+                <thead class="table-light">
                     <tr>
                         <th>Дата</th>
                         <th>Пациент</th>
@@ -87,8 +144,8 @@
                         <td>{{ visit.doctor_first_name }} {{ visit.doctor_last_name }}</td>
                         <td>{{ visit.diagnosis[:50] }}{% if visit.diagnosis|length > 50 %}...{% endif %}</td>
                         <td>
-                            <button class="btn btn-sm btn-info" onclick="showVisitDetails('{{ visit.id }}')">
-                                Подробнее
+                            <button class="btn btn-sm btn-outline-primary" onclick="showVisitDetails('{{ visit.id }}')">
+                                <i class="fas fa-eye me-1"></i> Подробнее
                             </button>
                         </td>
                     </tr>
@@ -104,17 +161,23 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Детали визита</h5>
+                <h5 class="modal-title"><i class="fas fa-file-medical me-2"></i>Детали визита</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="visitDetails">
-                Загрузка...
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="mt-2">Загрузка данных...</p>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 {% endblock %}
+
 
 {% block scripts %}
 <script>
@@ -144,7 +207,7 @@ function showVisitDetails(visitId) {
                     <div class="row">
                         <div class="col-md-6">
                             <h6>Дата визита:</h6>
-                            <p>${new Date(data.date).toLocaleString()}</p>
+                            <p>${new Date(data.date).toLocaleString("ru-RU",{ timeZone: "UTC" })}</p>
                             <h6>Местоположение:</h6>
                             <p>${data.location}</p>
                         </div>

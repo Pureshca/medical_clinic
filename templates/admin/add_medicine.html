@@ -1,41 +1,47 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="page-header">
+    <h2 class="fw-bold"><i class="fas fa-pills me-2"></i>Добавить лекарство</h2>
+    <p class="text-muted">Добавьте новое лекарство в базу данных</p>
+</div>
+
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header">
-                <h5 class="card-title">Добавить лекарство</h5>
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">Информация о лекарстве</h5>
             </div>
             <div class="card-body">
                 <form method="POST">
                     <div class="mb-3">
-                        <label for="name" class="form-label">Название лекарства *</label>
+                        <label for="name" class="form-label fw-semibold">Название лекарства *</label>
                         <input type="text" class="form-control" id="name" name="name" required>
                         <div class="form-text">Полное торговое название препарата</div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="description" class="form-label">Описание</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                        <div class="form-text">Краткое описание препарата и его назначение</div>
+                        <label for="description" class="form-label fw-semibold">Описание</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Краткое описание препарата и его назначение"></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label for="side_effects" class="form-label">Побочные эффекты</label>
-                        <textarea class="form-control" id="side_effects" name="side_effects" rows="3"></textarea>
-                        <div class="form-text">Возможные побочные эффекты (через запятую)</div>
+                        <label for="side_effects" class="form-label fw-semibold">Побочные эффекты</label>
+                        <textarea class="form-control" id="side_effects" name="side_effects" rows="3" placeholder="Возможные побочные эффекты (через запятую)"></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label for="usage_method" class="form-label">Способ применения</label>
-                        <textarea class="form-control" id="usage_method" name="usage_method" rows="3"></textarea>
-                        <div class="form-text">Инструкция по применению препарата</div>
+                        <label for="usage_method" class="form-label fw-semibold">Способ применения</label>
+                        <textarea class="form-control" id="usage_method" name="usage_method" rows="3" placeholder="Инструкция по применению препарата"></textarea>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">Добавить лекарство</button>
-                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Назад к панели</a>
+                    <div class="d-flex mt-4">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-save me-1"></i> Сохранить
+                        </button>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Назад
+                        </a>
                     </div>
                 </form>
             </div>
