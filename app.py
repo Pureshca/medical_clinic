@@ -272,7 +272,6 @@ def admin_add_doctor():
 
     if request.method == "POST":
         try:
-<<<<<<< HEAD
             first_name = request.form["first_name"]
             last_name = request.form["last_name"]
             position = request.form["position"]
@@ -282,16 +281,6 @@ def admin_add_doctor():
             # Хэшируем пароль
             password_hash = generate_password_hash(password)
 
-=======
-            first_name = request.form['first_name']
-            last_name = request.form['last_name']
-            position = request.form['position']
-            login = request.form['login']
-            password = request.form['password']
-            password_hash = generate_password_hash(password)
-            
-            # Проверяем, существует ли уже такой логин
->>>>>>> a46b4113fc683a3b6b3a4ad2fa756cc3d2ec8262
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT id FROM doctors WHERE login = %s", (login,))
@@ -331,7 +320,6 @@ def admin_add_patient():
 
     if request.method == "POST":
         try:
-<<<<<<< HEAD
             first_name = request.form["first_name"]
             last_name = request.form["last_name"]
             gender = request.form["gender"]
@@ -343,18 +331,6 @@ def admin_add_patient():
             # Хэшируем пароль
             password_hash = generate_password_hash(password)
 
-=======
-            first_name = request.form['first_name']
-            last_name = request.form['last_name']
-            gender = request.form['gender']
-            date_of_birth = request.form['date_of_birth']
-            address = request.form['address']
-            login = request.form['login']
-            password = request.form['password']
-            password_hash = generate_password_hash(password)
-            
-            # Проверяем, существует ли уже такой логин
->>>>>>> a46b4113fc683a3b6b3a4ad2fa756cc3d2ec8262
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT id FROM patients WHERE login = %s", (login,))
