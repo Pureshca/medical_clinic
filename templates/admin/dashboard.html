@@ -1,223 +1,210 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container-fluid">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for category, message in messages %}
-    {% if category != 'success' or 'удален' not in message %}
-    <div class="alert alert-{{ category }} alert-dismissible fade show">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endif %}
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
 
-    <div class="page-header d-flex justify-content-between align-items-center">
-        <h2 class="fw-bold">Панель управления</h2>
-        <div class="d-flex">
-            <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-primary me-2">
-                <i class="fas fa-user-md me-1"></i> Добавить врача
-            </a>
-            <a href="{{ url_for('admin_add_patient') }}" class="btn btn-success me-2">
-                <i class="fas fa-user-injured me-1"></i> Добавить пациента
-            </a>
-            <a href="{{ url_for('admin_add_medicine') }}" class="btn btn-info">
-                <i class="fas fa-pills me-1"></i> Добавить лекарство
-            </a>
-        </div>
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h2 class="fw-bold">Панель управления</h2>
+    <div class="d-flex">
+        <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-primary me-2">
+            <i class="fas fa-user-md me-1"></i> Добавить врача
+        </a>
+        <a href="{{ url_for('admin_add_patient') }}" class="btn btn-success me-2">
+            <i class="fas fa-user-injured me-1"></i> Добавить пациента
+        </a>
+        <a href="{{ url_for('admin_add_medicine') }}" class="btn btn-info">
+            <i class="fas fa-pills me-1"></i> Добавить лекарство
+        </a>
     </div>
+</div>
 
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card stat-card bg-white">
-                <div class="card-body py-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h6 class="card-title text-muted mb-1">Всего визитов</h6>
-                            <h3 class="fw-bold mb-0 text-primary">{{ total_visits }}</h3>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-calendar-check fa-2x text-primary opacity-25"></i>
-                        </div>
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-white">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-muted mb-1">Всего визитов</h6>
+                        <h3 class="fw-bold mb-0 text-primary">{{ total_visits }}</h3>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card stat-card bg-white">
-                <div class="card-body py-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h6 class="card-title text-muted mb-1">Пациентов</h6>
-                            <h3 class="fw-bold mb-0 text-success">{{ total_patients }}</h3>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-user-injured fa-2x text-success opacity-25"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card stat-card bg-white">
-                <div class="card-body py-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h6 class="card-title text-muted mb-1">Врачей</h6>
-                            <h3 class="fw-bold mb-0 text-info">{{ total_doctors }}</h3>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-user-md fa-2x text-info opacity-25"></i>
-                        </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-calendar-check fa-2x text-primary opacity-25"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Статистика</h5>
-                </div>
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>Поиск пациентов</h5>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-white">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-muted mb-1">Пациентов</h6>
+                        <h3 class="fw-bold mb-0 text-success">{{ total_patients }}</h3>
                     </div>
-                    <div class="card-body">
-                        <form id="searchForm">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label class="form-label">Тип поиска</label>
-                                        <select class="form-select" id="searchType">
-                                            <option value="visit_date">По дате визита</option>
-                                            <option value="diagnosis">По диагнозу</option>
-                                            <option value="side_effects">По побочным эффектам</option>
-                                        </select>
-                                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-user-injured fa-2x text-success opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-white">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-muted mb-1">Врачей</h6>
+                        <h3 class="fw-bold mb-0 text-info">{{ total_doctors }}</h3>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-user-md fa-2x text-info opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Статистика</h5>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Поиск пациентов</h5>
+                </div>
+                <div class="card-body">
+                    <form id="searchForm">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Тип поиска</label>
+                                    <select class="form-select" id="searchType">
+                                        <option value="visit_date">По дате визита</option>
+                                        <option value="diagnosis">По диагнозу</option>
+                                        <option value="side_effects">По побочным эффектам</option>
+                                    </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Запрос поиска</label>
-                                        <input type="text" class="form-control" id="searchQuery"
-                                            placeholder="Введите запрос для поиска">
-                                        <div id="suggestions" class="list-group mt-2"
-                                            style="display: none; position: absolute; z-index: 1000; width: 100%;">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label class="form-label">&nbsp;</label>
-                                        <button type="button" class="btn btn-primary w-100" onclick="searchPatients()">
-                                            Найти пациентов
-                                        </button>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Запрос поиска</label>
+                                    <input type="text" class="form-control" id="searchQuery"
+                                        placeholder="Введите запрос для поиска">
+                                    <div id="suggestions" class="list-group mt-2"
+                                        style="display: none; position: absolute; z-index: 1000; width: 100%;">
                                     </div>
                                 </div>
                             </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="card mb-4" id="searchResultsCard" style="display: none;">
-                    <div class="card-header">
-                        <h5>Результаты поиска</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="searchResults"></div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-list me-2 text-primary"></i>Все визиты</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Дата</th>
-                            <th>Пациент</th>
-                            <th>Врач</th>
-                            <th>Диагноз</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for visit in visits %}
-                        <tr>
-                            <td>{{ visit.date.strftime('%d.%m.%Y %H:%M') }}</td>
-                            <td>{{ visit.patient_first_name }} {{ visit.patient_last_name }}</td>
-                            <td>{{ visit.doctor_first_name }} {{ visit.doctor_last_name }}</td>
-                            <td>{{ visit.diagnosis[:50] }}{% if visit.diagnosis|length > 50 %}...{% endif %}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info" onclick="showVisitDetails('{{ visit.id }}')">
-                                    Подробнее
-                                </button>
-                                <!-- Кнопка удаления с подтверждением -->
-                                <button class="btn btn-sm btn-danger" onclick="confirmDelete('{{ visit.id }}')">
-                                    Удалить
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Modal for visit details -->
-    <div class="modal fade" id="visitModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-file-medical me-2"></i>Детали визита</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="visitDetails">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Загрузка...</span>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-primary w-100" onclick="searchPatients()">
+                                        Найти пациентов
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <p class="mt-2">Загрузка данных...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно для подтверждения удаления -->
-    <div class="modal fade" id="deleteModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Подтверждение удаления</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Вы уверены, что хотите удалить этот визит? Это действие нельзя отменить.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <form id="deleteForm" method="POST" action="">
-                        <button type="submit" class="btn btn-danger">Удалить</button>
                     </form>
                 </div>
             </div>
+
+            <div class="card mb-4" id="searchResultsCard" style="display: none;">
+                <div class="card-header">
+                    <h5>Результаты поиска</h5>
+                </div>
+                <div class="card-body">
+                    <div id="searchResults"></div>
+                </div>
+            </div>
+
         </div>
     </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list me-2 text-primary"></i>Все визиты</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Пациент</th>
+                        <th>Врач</th>
+                        <th>Диагноз</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for visit in visits %}
+                    <tr>
+                        <td>{{ visit.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                        <td>{{ visit.patient_first_name }} {{ visit.patient_last_name }}</td>
+                        <td>{{ visit.doctor_first_name }} {{ visit.doctor_last_name }}</td>
+                        <td>{{ visit.diagnosis[:50] }}{% if visit.diagnosis|length > 50 %}...{% endif %}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="showVisitDetails('{{ visit.id }}')">
+                                Подробнее
+                            </button>
+                            <!-- Кнопка удаления с подтверждением -->
+                            <button class="btn btn-sm btn-danger" onclick="confirmDelete('{{ visit.id }}')">
+                                Удалить
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal for visit details -->
+<div class="modal fade" id="visitModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-file-medical me-2"></i>Детали визита</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="visitDetails">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="mt-2">Загрузка данных...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для подтверждения удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение удаления</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить этот визит? Это действие нельзя отменить.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <form id="deleteForm" method="POST" action="">
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 </div>
 
 {% endblock %}
