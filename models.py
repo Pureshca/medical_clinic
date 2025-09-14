@@ -3,7 +3,7 @@ from flask import current_app
 import mysql.connector
 from datetime import datetime
 import os
-from werkzeug.security import generate_password_hash, check_password_hash
+
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -48,37 +48,49 @@ class User(UserMixin):
             print(f"Error getting user: {e}")
             return None
 
+
     @staticmethod
     def authenticate(login, password):
         try:
+            print(f"Attempting authentication for login: {login}")
+            
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             
-            # Проверяем во всех таблицах с проверкой пароля
+            # Проверяем во всех таблицах
             cursor.execute("SELECT id, login, password_hash, 'admin' as role FROM admins WHERE login = %s", (login,))
             user = cursor.fetchone()
             
             if not user:
+                print("User not found in admins table")
                 cursor.execute("SELECT id, login, password_hash, 'doctor' as role FROM doctors WHERE login = %s", (login,))
                 user = cursor.fetchone()
             
             if not user:
+                print("User not found in doctors table")
                 cursor.execute("SELECT id, login, password_hash, 'patient' as role FROM patients WHERE login = %s", (login,))
                 user = cursor.fetchone()
+            
+            if not user:
+                print("User not found in patients table")
             
             cursor.close()
             conn.close()
             
-            # Проверяем пароль с помощью werkzeug.security
-            if user and check_password_hash(user['password_hash'], password):
-                return User(user['id'], user['login'], user['role'])
+            if user:
+                print(f"User found: {user}")
+                import hashlib
+                password_hash = hashlib.sha256(password.encode()).hexdigest()
+                print(f"Input password hash: {password_hash}")
+                print(f"Stored password hash: {user['password_hash']}")
+                
+                if user['password_hash'] == password_hash:
+                    print("Password matches!")
+                    return User(user['id'], user['login'], user['role'])
+                else:
+                    print("Password does not match!")
             
             return None
         except Exception as e:
             print(f"Authentication error: {e}")
             return None
-
-
-    @staticmethod
-    def hash_password(password):
-        return generate_password_hash(password)
