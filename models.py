@@ -3,11 +3,7 @@ from flask import current_app
 import mysql.connector
 from datetime import datetime
 import os
-<<<<<<< HEAD
 from werkzeug.security import generate_password_hash, check_password_hash
-=======
-from werkzeug.security import check_password_hash  # ✅ добавлено
->>>>>>> a46b4113fc683a3b6b3a4ad2fa756cc3d2ec8262
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -73,11 +69,7 @@ class User(UserMixin):
             cursor.close()
             conn.close()
             
-<<<<<<< HEAD
             # Проверяем пароль с помощью werkzeug.security
-=======
-            # ✅ теперь используем хеш-проверку
->>>>>>> a46b4113fc683a3b6b3a4ad2fa756cc3d2ec8262
             if user and check_password_hash(user['password_hash'], password):
                 return User(user['id'], user['login'], user['role'])
             
@@ -85,10 +77,7 @@ class User(UserMixin):
         except Exception as e:
             print(f"Authentication error: {e}")
             return None
-<<<<<<< HEAD
 
     @staticmethod
     def hash_password(password):
         return generate_password_hash(password)
-=======
->>>>>>> a46b4113fc683a3b6b3a4ad2fa756cc3d2ec8262
