@@ -3,11 +3,7 @@ from flask import current_app
 import mysql.connector
 from datetime import datetime
 import os
-<<<<<<< HEAD
 from werkzeug.security import generate_password_hash, check_password_hash
-=======
-from werkzeug.security import check_password_hash  # ✅ добавлено
->>>>>>> a46b4113fc683a3b6b3a4ad2fa756cc3d2ec8262
 
 def get_db_connection():
     return mysql.connector.connect(
