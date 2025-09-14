@@ -4,6 +4,7 @@ from models import User, get_db_connection
 from datetime import datetime, timedelta
 import mysql.connector
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import hashlib
 load_dotenv()
@@ -237,9 +238,7 @@ def admin_add_doctor():
             position = request.form['position']
             login = request.form['login']
             password = request.form['password']
-            
-            # Хешируем пароль
-            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            password_hash = generate_password_hash(password)
             
             # Проверяем, существует ли уже такой логин
             conn = get_db_connection()
@@ -285,9 +284,7 @@ def admin_add_patient():
             address = request.form['address']
             login = request.form['login']
             password = request.form['password']
-            
-            # Хешируем пароль
-            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            password_hash = generate_password_hash(password)
             
             # Проверяем, существует ли уже такой логин
             conn = get_db_connection()
