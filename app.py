@@ -25,12 +25,18 @@ def load_user(user_id):
 @app.route('/')
 def index():
     if current_user.is_authenticated:
+        print(f"DEBUG: User {current_user.login} with role {current_user.role} authenticated")
+        
         if current_user.role == 'admin':
             return redirect(url_for('admin_dashboard'))
         elif current_user.role == 'doctor':
             return redirect(url_for('doctor_dashboard'))
         elif current_user.role == 'patient':
             return redirect(url_for('patient_dashboard'))
+        else:
+            flash('Неизвестная роль пользователя', 'error')
+            return redirect(url_for('login'))
+    
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -671,6 +677,177 @@ def admin_search_suggestions():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/delete-doctor/<int:doctor_id>', methods=['POST'])
+@login_required
+def admin_delete_doctor(doctor_id):
+    if current_user.role != 'admin':
+        flash('Доступ запрещен', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if doctor has any visits
+        cursor.execute("SELECT COUNT(*) FROM visits WHERE doctor_id = %s", (doctor_id,))
+        visit_count = cursor.fetchone()[0]
+        
+        if visit_count > 0:
+            flash('Нельзя удалить врача, у которого есть записи о визитах', 'error')
+            return redirect(url_for('admin_dashboard'))
+        
+        # Delete doctor
+        cursor.execute("DELETE FROM doctors WHERE id = %s", (doctor_id,))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        flash('Врач успешно удален', 'success')
+        
+    except Exception as e:
+        flash(f'Ошибка при удалении врача: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/delete-patient/<int:patient_id>', methods=['POST'])
+@login_required
+def admin_delete_patient(patient_id):
+    if current_user.role != 'admin':
+        flash('Доступ запрещен', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if patient has any visits
+        cursor.execute("SELECT COUNT(*) FROM visits WHERE patient_id = %s", (patient_id,))
+        visit_count = cursor.fetchone()[0]
+        
+        if visit_count > 0:
+            flash('Нельзя удалить пациента, у которого есть записи о визитах', 'error')
+            return redirect(url_for('admin_dashboard'))
+        
+        # Delete patient
+        cursor.execute("DELETE FROM patients WHERE id = %s", (patient_id,))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        flash('Пациент успешно удален', 'success')
+        
+    except Exception as e:
+        flash(f'Ошибка при удалении пациента: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_dashboard'))
+
+# Also add these routes to view doctors and patients lists
+@app.route('/admin/doctors')
+@login_required
+def admin_doctors_list():
+    if current_user.role != 'admin':
+        flash('Доступ запрещен', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('SELECT * FROM doctors ORDER BY last_name, first_name')
+        doctors = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('admin/doctors_list.html', doctors=doctors)
+    
+    except Exception as e:
+        flash(f'Ошибка: {str(e)}', 'error')
+        return render_template('admin/doctors_list.html', doctors=[])
+
+@app.route('/admin/patients')
+@login_required
+def admin_patients_list():
+    if current_user.role != 'admin':
+        flash('Доступ запрещен', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('SELECT * FROM patients ORDER BY last_name, first_name')
+        patients = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('admin/patients_list.html', patients=patients)
+    
+    except Exception as e:
+        flash(f'Ошибка: {str(e)}', 'error')
+        return render_template('admin/patients_list.html', patients=[])
+    
+
+@app.route('/admin/delete-medicine/<int:medicine_id>', methods=['POST'])
+@login_required
+def admin_delete_medicine(medicine_id):
+    if current_user.role != 'admin':
+        flash('Доступ запрещен', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if medicine is used in any visits
+        cursor.execute("SELECT COUNT(*) FROM visit_medicines WHERE medicine_id = %s", (medicine_id,))
+        usage_count = cursor.fetchone()[0]
+        
+        if usage_count > 0:
+            flash('Нельзя удалить лекарство, которое используется в записях о визитах', 'error')
+            return redirect(url_for('admin_medicines_list'))
+        
+        # Delete medicine
+        cursor.execute("DELETE FROM medicines WHERE id = %s", (medicine_id,))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        flash('Лекарство успешно удалено', 'success')
+        
+    except Exception as e:
+        flash(f'Ошибка при удалении лекарства: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_medicines_list'))
+
+@app.route('/admin/medicines')
+@login_required
+def admin_medicines_list():
+    if current_user.role != 'admin':
+        flash('Доступ запрещен', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('SELECT * FROM medicines ORDER BY name')
+        medicines = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('admin/medicines_list.html', medicines=medicines)
+    
+    except Exception as e:
+        flash(f'Ошибка: {str(e)}', 'error')
+        return render_template('admin/medicines_list.html', medicines=[])
 
 if __name__ == '__main__':
     app.run(debug=True)

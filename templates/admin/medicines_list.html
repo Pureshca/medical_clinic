@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>Список лекарств</h5>
+        <div>
+            <a href="{{ url_for('admin_add_medicine') }}" class="btn btn-success btn-sm">Добавить лекарство</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">Назад к панели</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Описание</th>
+                        <th>Побочные эффекты</th>
+                        <th>Способ применения</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for medicine in medicines %}
+                    <tr>
+                        <td>{{ medicine.name }}</td>
+                        <td>{{ medicine.description[:50] }}{% if medicine.description|length > 50 %}...{% endif %}</td>
+                        <td>{{ medicine.side_effects[:50] }}{% if medicine.side_effects|length > 50 %}...{% endif %}</td>
+                        <td>{{ medicine.usage_method[:50] }}{% if medicine.usage_method|length > 50 %}...{% endif %}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin_delete_medicine', medicine_id=medicine.id) }}" 
+                                  onsubmit="return confirm('Вы уверены, что хотите удалить это лекарство?')" style="display: inline;">
+                                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
