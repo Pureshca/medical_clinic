@@ -394,7 +394,7 @@
                     if (data.length === 0) {
                         $('#searchResults').html('<div class="alert alert-info">Пациенты не найдены</div>');
                     } else {
-                        let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>ID</th><th>Имя</th><th>Фамилия</th><th>Дата рождения</th><th>Пол</th><th>Адрес</th></tr></thead><tbody>';
+                        let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>Имя</th><th>Фамилия</th><th>Дата рождения</th><th>Пол</th><th>Адрес</th></tr></thead><tbody>';
                         data.forEach(patient => {
                             html += `
                         <tr>
