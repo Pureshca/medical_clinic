@@ -62,14 +62,14 @@
 
 {% block scripts %}
 <script>
-function showVisitDetails(visitId) {
-    fetch(`/doctor/visits/${visitId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                $('#visitDetails').html(`<div class="alert alert-danger">${data.error}</div>`);
-            } else {
-                let html = `
+    function showVisitDetails(visitId) {
+        fetch(`/doctor/visits/${visitId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    $('#visitDetails').html(`<div class="alert alert-danger">${data.error}</div>`);
+                } else {
+                    let html = `
                     <div class="row">
                         <div class="col-md-6">
                             <h6>Пациент:</h6>
@@ -96,11 +96,11 @@ function showVisitDetails(visitId) {
                     <h6>Назначения:</h6>
                     <p>${data.prescriptions || 'Не указаны'}</p>
                 `;
-                
-                if (data.medicines && data.medicines.length > 0) {
-                    html += `<hr><h6>Назначенные лекарства:</h6>`;
-                    data.medicines.forEach(med => {
-                        html += `
+
+                    if (data.medicines && data.medicines.length > 0) {
+                        html += `<hr><h6>Назначенные лекарства:</h6>`;
+                        data.medicines.forEach(med => {
+                            html += `
                             <div class="card mb-2">
                                 <div class="card-body">
                                     <h6>${med.name}</h6>
@@ -111,17 +111,17 @@ function showVisitDetails(visitId) {
                                 </div>
                             </div>
                         `;
-                    });
+                        });
+                    }
+
+                    $('#visitDetails').html(html);
                 }
-                
-                $('#visitDetails').html(html);
-            }
-            $('#visitModal').modal('show');
-        })
-        .catch(error => {
-            $('#visitDetails').html('<div class="alert alert-danger">Ошибка загрузки данных</div>');
-            $('#visitModal').modal('show');
-        });
-}
+                $('#visitModal').modal('show');
+            })
+            .catch(error => {
+                $('#visitDetails').html('<div class="alert alert-danger">Ошибка загрузки данных</div>');
+                $('#visitModal').modal('show');
+            });
+    }
 </script>
 {% endblock %}
