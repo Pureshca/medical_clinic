@@ -141,8 +141,13 @@ class User(UserMixin):
 def populate_db():
     """Заполняет базу тестовыми данными, если таблицы пустые."""
     try:
+        # Проверяем и добавляем администраторов
         if not Admin.query.first():
             admins = [
+                Admin(
+                    login="admin",
+                    password_hash=hashlib.sha256("admin123".encode()).hexdigest(),
+                ),
                 Admin(
                     login="admin",
                     password_hash=hashlib.sha256("admin123".encode()).hexdigest(),
@@ -207,6 +212,7 @@ def populate_db():
             db.session.add_all(admins)
             print("✅ Admins added")
 
+        # Проверяем и добавляем пациентов
         if not Patient.query.first():
             patients = [
                 Patient(
@@ -348,6 +354,7 @@ def populate_db():
             db.session.add_all(patients)
             print("✅ Patients added")
 
+        # Проверяем и добавляем врачей
         if not Doctor.query.first():
             doctors = [
                 Doctor(
@@ -457,7 +464,9 @@ def populate_db():
                 ),
             ]
             db.session.add_all(doctors)
+            print("✅ Doctors added")
 
+        # Проверяем и добавляем лекарства
         if not Medicine.query.first():
             medicines = [
                 Medicine(
@@ -551,8 +560,10 @@ def populate_db():
                     usage_method="1 tablet once a day under INR monitoring",
                 ),
             ]
-            db.session.bulk_save_objects(medicines)
+            db.session.add_all(medicines)
+            print("✅ Medicines added")
 
+        # Проверяем и добавляем визиты
         if not Visit.query.first():
             visits = [
                 Visit(
@@ -691,8 +702,10 @@ def populate_db():
                     prescriptions="Rest, ice, elevation",
                 ),
             ]
-            db.session.bulk_save_objects(visits)
+            db.session.add_all(visits)
+            print("✅ Visits added")
 
+        # Проверяем и добавляем связи визитов с лекарствами
         if not VisitMedicine.query.first():
             visit_medicines = [
                 VisitMedicine(
@@ -771,8 +784,12 @@ def populate_db():
                     doctor_instructions="Take at the same time daily, monitor INR",
                 ),
             ]
-            db.session.commit()
-            print("✅ Database populated successfully!")
+            db.session.add_all(visit_medicines)
+            print("✅ Visit medicines added")
+
+        # Фиксируем все изменения
+        db.session.commit()
+        print("✅ Database populated successfully!")
 
     except Exception as e:
         db.session.rollback()
