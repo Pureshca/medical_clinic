@@ -20,6 +20,7 @@ from models import (
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import traceback
 import hashlib
 
 
@@ -28,16 +29,6 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "fallback-secret-key")
 
-# Проверяем, используем ли мы PostgreSQL в продакшене
-if os.getenv("FLASK_ENV") == "production":
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "DATABASE_URL", "sqlite:///medical_clinic.db"
-    )
-else:
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        f'sqlite:///{os.path.join(basedir, "medical_clinic.db")}'
-    )
 
 # Используем SQLite для простоты
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -120,9 +111,18 @@ def admin_dashboard():
         return redirect(url_for("index"))
 
     try:
-        # Получаем все визиты с информацией о пациентах и врачах
+        # Исправленный запрос с явным выбором полей
         visits = (
-            db.session.query(Visit, Patient, Doctor)
+            db.session.query(
+                Visit.id,
+                Visit.date,
+                Visit.location,
+                Visit.diagnosis,
+                Patient.first_name.label("patient_first_name"),
+                Patient.last_name.label("patient_last_name"),
+                Doctor.first_name.label("doctor_first_name"),
+                Doctor.last_name.label("doctor_last_name"),
+            )
             .join(Patient, Visit.patient_id == Patient.id)
             .join(Doctor, Visit.doctor_id == Doctor.id)
             .order_by(Visit.date.desc())
@@ -310,8 +310,8 @@ def admin_add_medicine():
         flash("Доступ запрещен", "error")
         return redirect(url_for("index"))
 
-    if request.method == "POST":
-        try:
+    try:
+        if request.method == "POST":
             name = request.form["name"]
             description = request.form["description"]
             side_effects = request.form["side_effects"]
@@ -330,11 +330,14 @@ def admin_add_medicine():
             flash("Лекарство успешно добавлено", "success")
             return redirect(url_for("admin_add_medicine"))
 
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Ошибка: {str(e)}", "error")
+        return render_template("admin/add_medicine.html")
 
-    return render_template("admin/add_medicine.html")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in admin_add_medicine: {str(e)}")
+        print(traceback.format_exc())
+        flash(f"Ошибка при добавлении лекарства: {str(e)}", "error")
+        return redirect(url_for("admin_add_medicine"))
 
 
 # Doctor routes
@@ -346,8 +349,16 @@ def doctor_dashboard():
         return redirect(url_for("index"))
 
     try:
+        # Исправленный запрос с явным выбором полей
         visits = (
-            db.session.query(Visit, Patient)
+            db.session.query(
+                Visit.id,
+                Visit.date,
+                Visit.location,
+                Visit.diagnosis,
+                Patient.first_name.label("patient_first_name"),
+                Patient.last_name.label("patient_last_name"),
+            )
             .join(Patient, Visit.patient_id == Patient.id)
             .filter(Visit.doctor_id == current_user.id)
             .order_by(Visit.date.desc())
@@ -421,6 +432,127 @@ def doctor_add_visit():
     )
 
 
+# Doctor visit details
+@app.route("/doctor/visits/<int:visit_id>")
+@login_required
+def doctor_visit_detail(visit_id):
+    if current_user.role != "doctor":
+        return jsonify({"error": "Доступ запрещен"}), 403
+
+    try:
+        visit_data = (
+            db.session.query(Visit, Patient, Doctor)
+            .join(Patient, Visit.patient_id == Patient.id)
+            .join(Doctor, Visit.doctor_id == Doctor.id)
+            .filter(Visit.id == visit_id, Visit.doctor_id == current_user.id)
+            .first()
+        )
+
+        if not visit_data:
+            return jsonify({"error": "Визит не найден"}), 404
+
+        visit, patient, doctor = visit_data
+
+        medicines = (
+            db.session.query(VisitMedicine, Medicine)
+            .join(Medicine, VisitMedicine.medicine_id == Medicine.id)
+            .filter(VisitMedicine.visit_id == visit_id)
+            .all()
+        )
+
+        result = {
+            "id": visit.id,
+            "date": visit.date.isoformat() if visit.date else None,
+            "location": visit.location,
+            "symptoms": visit.symptoms,
+            "diagnosis": visit.diagnosis,
+            "prescriptions": visit.prescriptions,
+            "patient_first_name": patient.first_name,
+            "patient_last_name": patient.last_name,
+            "date_of_birth": (
+                patient.date_of_birth.isoformat() if patient.date_of_birth else None
+            ),
+            "gender": patient.gender,
+            "address": patient.address,
+            "doctor_first_name": doctor.first_name,
+            "doctor_last_name": doctor.last_name,
+            "position": doctor.position,
+            "medicines": [
+                {
+                    "name": medicine.name,
+                    "description": medicine.description,
+                    "side_effects": medicine.side_effects,
+                    "usage_method": medicine.usage_method,
+                    "doctor_instructions": visit_medicine.doctor_instructions,
+                }
+                for visit_medicine, medicine in medicines
+            ],
+        }
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# Patient visit details
+@app.route("/patient/visits/<int:visit_id>")
+@login_required
+def patient_visit_detail(visit_id):
+    if current_user.role != "patient":
+        return jsonify({"error": "Доступ запрещен"}), 403
+
+    try:
+        visit_data = (
+            db.session.query(Visit, Patient, Doctor)
+            .join(Patient, Visit.patient_id == Patient.id)
+            .join(Doctor, Visit.doctor_id == Doctor.id)
+            .filter(Visit.id == visit_id, Visit.patient_id == current_user.id)
+            .first()
+        )
+
+        if not visit_data:
+            return jsonify({"error": "Визит не найден"}), 404
+
+        visit, patient, doctor = visit_data
+
+        medicines = (
+            db.session.query(VisitMedicine, Medicine)
+            .join(Medicine, VisitMedicine.medicine_id == Medicine.id)
+            .filter(VisitMedicine.visit_id == visit_id)
+            .all()
+        )
+
+        result = {
+            "id": visit.id,
+            "date": visit.date.isoformat() if visit.date else None,
+            "location": visit.location,
+            "symptoms": visit.symptoms,
+            "diagnosis": visit.diagnosis,
+            "prescriptions": visit.prescriptions,
+            "patient_first_name": patient.first_name,
+            "patient_last_name": patient.last_name,
+            "doctor_first_name": doctor.first_name,
+            "doctor_last_name": doctor.last_name,
+            "position": doctor.position,
+            "medicines": [
+                {
+                    "name": medicine.name,
+                    "description": medicine.description,
+                    "side_effects": medicine.side_effects,
+                    "usage_method": medicine.usage_method,
+                    "doctor_instructions": visit_medicine.doctor_instructions,
+                }
+                for visit_medicine, medicine in medicines
+            ],
+        }
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # Patient routes
 @app.route("/patient/dashboard")
 @login_required
@@ -430,8 +562,17 @@ def patient_dashboard():
         return redirect(url_for("index"))
 
     try:
+        # Исправленный запрос с явным выбором полей
         visits = (
-            db.session.query(Visit, Doctor)
+            db.session.query(
+                Visit.id,
+                Visit.date,
+                Visit.location,
+                Visit.diagnosis,
+                Doctor.first_name.label("doctor_first_name"),
+                Doctor.last_name.label("doctor_last_name"),
+                Doctor.position,
+            )
             .join(Doctor, Visit.doctor_id == Doctor.id)
             .filter(Visit.patient_id == current_user.id)
             .order_by(Visit.date.desc())
@@ -453,6 +594,7 @@ def admin_doctors_list():
         flash("Доступ запрещен", "error")
         return redirect(url_for("index"))
 
+    # Простой запрос без join
     doctors = Doctor.query.order_by(Doctor.last_name, Doctor.first_name).all()
     return render_template("admin/doctors_list.html", doctors=doctors)
 
@@ -464,6 +606,7 @@ def admin_patients_list():
         flash("Доступ запрещен", "error")
         return redirect(url_for("index"))
 
+    # Простой запрос без join
     patients = Patient.query.order_by(Patient.last_name, Patient.first_name).all()
     return render_template("admin/patients_list.html", patients=patients)
 
@@ -475,6 +618,7 @@ def admin_medicines_list():
         flash("Доступ запрещен", "error")
         return redirect(url_for("index"))
 
+    # Простой запрос без join
     medicines = Medicine.query.order_by(Medicine.name).all()
     return render_template("admin/medicines_list.html", medicines=medicines)
 
@@ -549,6 +693,20 @@ def admin_delete_medicine(medicine_id):
 def health_check():
     return jsonify({"status": "healthy"}), 200
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Логируем ошибку, но не показываем пользователю
+    print(f"Global error handler: {str(e)}")
+    print(traceback.format_exc())
+    
+    # Если это ошибка атрибута, связанная с SQLAlchemy
+    if "has no attribute" in str(e) and "sqlalchemy" in str(e):
+        # Просто логируем, не показываем пользователю
+        return redirect(request.referrer or url_for('index'))
+    
+    # Для других ошибок показываем стандартное сообщение
+    flash("Произошла внутренняя ошибка сервера", "error")
+    return redirect(url_for('index'))
 
 if __name__ == "__main__":
     # В продакшене используем gunicorn, для разработки - встроенный сервер

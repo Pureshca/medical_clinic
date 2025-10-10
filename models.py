@@ -149,10 +149,6 @@ def populate_db():
                     password_hash=hashlib.sha256("admin123".encode()).hexdigest(),
                 ),
                 Admin(
-                    login="admin",
-                    password_hash=hashlib.sha256("admin123".encode()).hexdigest(),
-                ),
-                Admin(
                     login="admin2",
                     password_hash=hashlib.sha256("admin456".encode()).hexdigest(),
                 ),

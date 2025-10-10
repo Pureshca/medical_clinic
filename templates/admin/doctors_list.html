@@ -1,38 +1,48 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Список врачей</h2>
+    <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> Добавить врача
+    </a>
+</div>
+
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5>Список врачей</h5>
-        <div>
-            <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-success btn-sm">Добавить врача</a>
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">Назад к панели</a>
-        </div>
-    </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>ФИО</th>
+                        <th>ID</th>
+                        <th>Имя</th>
+                        <th>Фамилия</th>
                         <th>Должность</th>
                         <th>Логин</th>
+                        <th>Дата создания</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for doctor in doctors %}
                     <tr>
-                        <td>{{ doctor.first_name }} {{ doctor.last_name }}</td>
+                        <td>{{ doctor.id }}</td>
+                        <td>{{ doctor.first_name }}</td>
+                        <td>{{ doctor.last_name }}</td>
                         <td>{{ doctor.position }}</td>
                         <td>{{ doctor.login }}</td>
+                        <td>{{ doctor.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
                         <td>
-                            <form method="POST" action="{{ url_for('admin_delete_doctor', doctor_id=doctor.id) }}"
-                                onsubmit="return confirm('Вы уверены, что хотите удалить этого врача?')"
-                                style="display: inline;">
-                                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                            <form method="POST" action="{{ url_for('admin_delete_doctor', doctor_id=doctor.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите удалить этого врача?')">
+                                    Удалить
+                                </button>
                             </form>
                         </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">Врачи не найдены</td>
                     </tr>
                     {% endfor %}
                 </tbody>

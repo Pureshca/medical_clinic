@@ -1,41 +1,50 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Список пациентов</h2>
+    <a href="{{ url_for('admin_add_patient') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> Добавить пациента
+    </a>
+</div>
+
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5>Список пациентов</h5>
-        <div>
-            <a href="{{ url_for('admin_add_patient') }}" class="btn btn-success btn-sm">Добавить пациента</a>
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">Назад к панели</a>
-        </div>
-    </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>ФИО</th>
+                        <th>ID</th>
+                        <th>Имя</th>
+                        <th>Фамилия</th>
                         <th>Пол</th>
                         <th>Дата рождения</th>
                         <th>Адрес</th>
+                        <th>Логин</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for patient in patients %}
                     <tr>
-                        <td>{{ patient.first_name }} {{ patient.last_name }}</td>
+                        <td>{{ patient.id }}</td>
+                        <td>{{ patient.first_name }}</td>
+                        <td>{{ patient.last_name }}</td>
                         <td>{{ 'Мужской' if patient.gender == 'M' else 'Женский' }}</td>
-                        <td>{{ patient.date_of_birth.strftime('%d.%m.%Y') if patient.date_of_birth else 'Не указана'
-                            }}</td>
-                        <td>{{ patient.address[:50] }}{% if patient.address|length > 50 %}...{% endif %}</td>
+                        <td>{{ patient.date_of_birth.strftime('%d.%m.%Y') }}</td>
+                        <td>{{ patient.address }}</td>
+                        <td>{{ patient.login }}</td>
                         <td>
-                            <form method="POST" action="{{ url_for('admin_delete_patient', patient_id=patient.id) }}"
-                                onsubmit="return confirm('Вы уверены, что хотите удалить этого пациента?')"
-                                style="display: inline;">
-                                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                            <form method="POST" action="{{ url_for('admin_delete_patient', patient_id=patient.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите удалить этого пациента?')">
+                                    Удалить
+                                </button>
                             </form>
                         </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">Пациенты не найдены</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -43,5 +52,4 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
