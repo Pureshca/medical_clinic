@@ -1,16 +1,24 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import User, get_db_connection
+from models import db, Admin, Doctor, Patient, Medicine, Visit, VisitMedicine, User, populate_db
 from datetime import datetime, timedelta
-import mysql.connector
 from dotenv import load_dotenv
 import os
 import hashlib
+
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback-secret-key')
+
+# Инициализация базы данных
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    "DATABASE_URL",
+    "mysql+pymysql://root:rootpassword@db/medical_clinic"
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -20,6 +28,10 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.get(user_id)
 
+# Создание таблиц при запуске
+with app.app_context():
+    db.create_all()
+    populate_db()
 
 # Routes
 @app.route('/')
@@ -71,32 +83,40 @@ def admin_dashboard():
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        # Get all visits with patient and doctor info
-        cursor.execute('''
-            SELECT v.*, p.first_name as patient_first_name, p.last_name as patient_last_name,
-                   d.first_name as doctor_first_name, d.last_name as doctor_last_name
-            FROM visits v
-            JOIN patients p ON v.patient_id = p.id
-            JOIN doctors d ON v.doctor_id = d.id
-            ORDER BY v.date DESC
-        ''')
-        visits = cursor.fetchall()
-        
-        # Get statistics
-        cursor.execute("SELECT COUNT(*) as total_visits FROM visits")
-        total_visits = cursor.fetchone()['total_visits']
-        
-        cursor.execute("SELECT COUNT(*) as total_patients FROM patients")
-        total_patients = cursor.fetchone()['total_patients']
-        
-        cursor.execute("SELECT COUNT(*) as total_doctors FROM doctors")
-        total_doctors = cursor.fetchone()['total_doctors']
-        
-        cursor.close()
-        conn.close()
+        # Получаем все визиты с информацией о пациентах и врачах
+        visits_data = db.session.query(
+            Visit,
+            Patient.first_name.label('patient_first_name'),
+            Patient.last_name.label('patient_last_name'),
+            Doctor.first_name.label('doctor_first_name'),
+            Doctor.last_name.label('doctor_last_name')
+        ).join(Patient, Visit.patient_id == Patient.id)\
+         .join(Doctor, Visit.doctor_id == Doctor.id)\
+         .order_by(Visit.date.desc()).all()
+
+        # Преобразуем в удобный формат для шаблона
+        visits = []
+        for visit_data in visits_data:
+            visit, patient_first_name, patient_last_name, doctor_first_name, doctor_last_name = visit_data
+            visits.append({
+                'id': visit.id,
+                'patient_id': visit.patient_id,
+                'doctor_id': visit.doctor_id,
+                'date': visit.date,
+                'location': visit.location,
+                'symptoms': visit.symptoms,
+                'diagnosis': visit.diagnosis,
+                'prescriptions': visit.prescriptions,
+                'patient_first_name': patient_first_name,
+                'patient_last_name': patient_last_name,
+                'doctor_first_name': doctor_first_name,
+                'doctor_last_name': doctor_last_name
+            })
+
+        # Статистика
+        total_visits = Visit.query.count()
+        total_patients = Patient.query.count()
+        total_doctors = Doctor.query.count()
         
         return render_template('admin/dashboard.html', 
                              visits=visits,
@@ -115,35 +135,65 @@ def admin_visit_detail(visit_id):
         return jsonify({'error': 'Доступ запрещен'}), 403
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        # Получаем детали визита
+        visit_data = db.session.query(
+            Visit,
+            Patient.first_name.label('patient_first_name'),
+            Patient.last_name.label('patient_last_name'),
+            Patient.date_of_birth,
+            Patient.gender,
+            Patient.address,
+            Doctor.first_name.label('doctor_first_name'),
+            Doctor.last_name.label('doctor_last_name'),
+            Doctor.position
+        ).join(Patient, Visit.patient_id == Patient.id)\
+         .join(Doctor, Visit.doctor_id == Doctor.id)\
+         .filter(Visit.id == visit_id).first()
         
-        # Get visit details
-        cursor.execute('''
-            SELECT v.*, p.first_name as patient_first_name, p.last_name as patient_last_name,
-                   p.date_of_birth, p.gender, p.address,
-                   d.first_name as doctor_first_name, d.last_name as doctor_last_name, d.position
-            FROM visits v
-            JOIN patients p ON v.patient_id = p.id
-            JOIN doctors d ON v.doctor_id = d.id
-            WHERE v.id = %s
-        ''', (visit_id,))
-        visit = cursor.fetchone()
+        if not visit_data:
+            return jsonify({'error': 'Визит не найден'}), 404
         
-        # Get prescribed medicines
-        cursor.execute('''
-            SELECT m.name, m.description, m.side_effects, m.usage_method, vm.doctor_instructions
-            FROM visit_medicines vm
-            JOIN medicines m ON vm.medicine_id = m.id
-            WHERE vm.visit_id = %s
-        ''', (visit_id,))
-        medicines = cursor.fetchall()
+        visit, patient_first_name, patient_last_name, date_of_birth, gender, address, doctor_first_name, doctor_last_name, position = visit_data
         
-        cursor.close()
-        conn.close()
+        # Получаем назначенные лекарства
+        medicines_data = db.session.query(
+            Medicine.name,
+            Medicine.description,
+            Medicine.side_effects,
+            Medicine.usage_method,
+            VisitMedicine.doctor_instructions
+        ).join(VisitMedicine, Medicine.id == VisitMedicine.medicine_id)\
+         .filter(VisitMedicine.visit_id == visit_id).all()
         
-        visit['medicines'] = medicines
-        return jsonify(visit)
+        medicines = [{
+            'name': med.name,
+            'description': med.description,
+            'side_effects': med.side_effects,
+            'usage_method': med.usage_method,
+            'doctor_instructions': med.doctor_instructions
+        } for med in medicines_data]
+        
+        result = {
+            'id': visit.id,
+            'patient_id': visit.patient_id,
+            'doctor_id': visit.doctor_id,
+            'date': visit.date.isoformat() if visit.date else None,
+            'location': visit.location,
+            'symptoms': visit.symptoms,
+            'diagnosis': visit.diagnosis,
+            'prescriptions': visit.prescriptions,
+            'patient_first_name': patient_first_name,
+            'patient_last_name': patient_last_name,
+            'date_of_birth': date_of_birth.isoformat() if date_of_birth else None,
+            'gender': gender,
+            'address': address,
+            'doctor_first_name': doctor_first_name,
+            'doctor_last_name': doctor_last_name,
+            'position': position,
+            'medicines': medicines
+        }
+        
+        return jsonify(result)
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -154,22 +204,15 @@ def admin_stats_visits_by_date():
     if current_user.role != 'admin':
         return jsonify({'error': 'Доступ запрещен'}), 403
     
-    date = request.json.get('date')
+    date_str = request.json.get('date')
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
         
-        cursor.execute('''
-            SELECT COUNT(*) as visit_count
-            FROM visits
-            WHERE DATE(date) = %s
-        ''', (date,))
-        result = cursor.fetchone()
+        visit_count = db.session.query(Visit).filter(
+            db.func.date(Visit.date) == date_obj
+        ).count()
         
-        cursor.close()
-        conn.close()
-        
-        return jsonify({'date': date, 'visit_count': result['visit_count']})
+        return jsonify({'date': date_str, 'visit_count': visit_count})
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -182,20 +225,11 @@ def admin_stats_patients_by_diagnosis():
     
     diagnosis = request.json.get('diagnosis')
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        patient_count = db.session.query(Visit.patient_id).filter(
+            Visit.diagnosis.like(f'%{diagnosis}%')
+        ).distinct().count()
         
-        cursor.execute('''
-            SELECT COUNT(DISTINCT patient_id) as patient_count
-            FROM visits
-            WHERE diagnosis LIKE %s
-        ''', (f'%{diagnosis}%',))
-        result = cursor.fetchone()
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify({'diagnosis': diagnosis, 'patient_count': result['patient_count']})
+        return jsonify({'diagnosis': diagnosis, 'patient_count': patient_count})
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -208,21 +242,13 @@ def admin_stats_medicine_side_effects():
     
     medicine_name = request.json.get('medicine_name')
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        medicine = Medicine.query.filter_by(name=medicine_name).first()
         
-        cursor.execute('''
-            SELECT side_effects
-            FROM medicines
-            WHERE name = %s
-        ''', (medicine_name,))
-        result = cursor.fetchone()
-        
-        cursor.close()
-        conn.close()
-        
-        if result:
-            return jsonify({'medicine_name': medicine_name, 'side_effects': result['side_effects']})
+        if medicine:
+            return jsonify({
+                'medicine_name': medicine_name, 
+                'side_effects': medicine.side_effects
+            })
         else:
             return jsonify({'error': 'Лекарство не найдено'}), 404
     
@@ -244,33 +270,29 @@ def admin_add_doctor():
             login = request.form['login']
             password = request.form['password']
             
-            # Хешируем пароль
-            password_hash = hashlib.sha256(password.encode()).hexdigest()
-            
             # Проверяем, существует ли уже такой логин
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT id FROM doctors WHERE login = %s", (login,))
-            existing_doctor = cursor.fetchone()
-            
+            existing_doctor = Doctor.query.filter_by(login=login).first()
             if existing_doctor:
                 flash('Логин уже существует', 'error')
                 return redirect(url_for('admin_add_doctor'))
             
             # Добавляем врача
-            cursor.execute('''
-                INSERT INTO doctors (first_name, last_name, position, login, password_hash)
-                VALUES (%s, %s, %s, %s, %s)
-            ''', (first_name, last_name, position, login, password_hash))
+            new_doctor = Doctor(
+                first_name=first_name,
+                last_name=last_name,
+                position=position,
+                login=login,
+                password_hash=hashlib.sha256(password.encode()).hexdigest()
+            )
             
-            conn.commit()
-            cursor.close()
-            conn.close()
+            db.session.add(new_doctor)
+            db.session.commit()
             
             flash('Врач успешно добавлен', 'success')
             return redirect(url_for('admin_add_doctor'))
         
         except Exception as e:
+            db.session.rollback()
             flash(f'Ошибка: {str(e)}', 'error')
     
     return render_template('admin/add_doctor.html')
@@ -287,38 +309,36 @@ def admin_add_patient():
             first_name = request.form['first_name']
             last_name = request.form['last_name']
             gender = request.form['gender']
-            date_of_birth = request.form['date_of_birth']
+            date_of_birth = datetime.strptime(request.form['date_of_birth'], '%Y-%m-%d')
             address = request.form['address']
             login = request.form['login']
             password = request.form['password']
             
-            # Хешируем пароль
-            password_hash = hashlib.sha256(password.encode()).hexdigest()
-            
             # Проверяем, существует ли уже такой логин
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT id FROM patients WHERE login = %s", (login,))
-            existing_patient = cursor.fetchone()
-            
+            existing_patient = Patient.query.filter_by(login=login).first()
             if existing_patient:
                 flash('Логин уже существует', 'error')
                 return redirect(url_for('admin_add_patient'))
             
             # Добавляем пациента
-            cursor.execute('''
-                INSERT INTO patients (first_name, last_name, gender, date_of_birth, address, login, password_hash)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (first_name, last_name, gender, date_of_birth, address, login, password_hash))
+            new_patient = Patient(
+                first_name=first_name,
+                last_name=last_name,
+                gender=gender,
+                date_of_birth=date_of_birth,
+                address=address,
+                login=login,
+                password_hash=hashlib.sha256(password.encode()).hexdigest()
+            )
             
-            conn.commit()
-            cursor.close()
-            conn.close()
+            db.session.add(new_patient)
+            db.session.commit()
             
             flash('Пациент успешно добавлен', 'success')
             return redirect(url_for('admin_add_patient'))
         
         except Exception as e:
+            db.session.rollback()
             flash(f'Ошибка: {str(e)}', 'error')
     
     return render_template('admin/add_patient.html')
@@ -337,22 +357,21 @@ def admin_add_medicine():
             side_effects = request.form['side_effects']
             usage_method = request.form['usage_method']
             
-            conn = get_db_connection()
-            cursor = conn.cursor()
+            new_medicine = Medicine(
+                name=name,
+                description=description,
+                side_effects=side_effects,
+                usage_method=usage_method
+            )
             
-            cursor.execute('''
-                INSERT INTO medicines (name, description, side_effects, usage_method)
-                VALUES (%s, %s, %s, %s)
-            ''', (name, description, side_effects, usage_method))
-            
-            conn.commit()
-            cursor.close()
-            conn.close()
+            db.session.add(new_medicine)
+            db.session.commit()
             
             flash('Лекарство успешно добавлено', 'success')
             return redirect(url_for('admin_add_medicine'))
         
         except Exception as e:
+            db.session.rollback()
             flash(f'Ошибка: {str(e)}', 'error')
     
     return render_template('admin/add_medicine.html')
@@ -366,20 +385,28 @@ def doctor_dashboard():
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute('''
-            SELECT v.*, p.first_name as patient_first_name, p.last_name as patient_last_name
-            FROM visits v
-            JOIN patients p ON v.patient_id = p.id
-            WHERE v.doctor_id = %s
-            ORDER BY v.date DESC
-        ''', (current_user.id,))
-        visits = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
+        visits_data = db.session.query(
+            Visit,
+            Patient.first_name.label('patient_first_name'),
+            Patient.last_name.label('patient_last_name')
+        ).join(Patient, Visit.patient_id == Patient.id)\
+         .filter(Visit.doctor_id == current_user.id)\
+         .order_by(Visit.date.desc()).all()
+
+        visits = []
+        for visit_data in visits_data:
+            visit, patient_first_name, patient_last_name = visit_data
+            visits.append({
+                'id': visit.id,
+                'patient_id': visit.patient_id,
+                'date': visit.date,
+                'location': visit.location,
+                'symptoms': visit.symptoms,
+                'diagnosis': visit.diagnosis,
+                'prescriptions': visit.prescriptions,
+                'patient_first_name': patient_first_name,
+                'patient_last_name': patient_last_name
+            })
         
         return render_template('doctor/dashboard.html', visits=visits)
     
@@ -394,34 +421,58 @@ def doctor_visit_detail(visit_id):
         return jsonify({'error': 'Доступ запрещен'}), 403
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        # Получаем детали визита
+        visit_data = db.session.query(
+            Visit,
+            Patient.first_name.label('patient_first_name'),
+            Patient.last_name.label('patient_last_name'),
+            Patient.date_of_birth,
+            Patient.gender,
+            Patient.address
+        ).join(Patient, Visit.patient_id == Patient.id)\
+         .filter(Visit.id == visit_id, Visit.doctor_id == current_user.id).first()
         
-        cursor.execute('''
-            SELECT v.*, p.first_name as patient_first_name, p.last_name as patient_last_name,
-                   p.date_of_birth, p.gender, p.address
-            FROM visits v
-            JOIN patients p ON v.patient_id = p.id
-            WHERE v.id = %s AND v.doctor_id = %s
-        ''', (visit_id, current_user.id))
-        visit = cursor.fetchone()
-        
-        if not visit:
+        if not visit_data:
             return jsonify({'error': 'Визит не найден'}), 404
         
-        cursor.execute('''
-            SELECT m.name, m.description, m.side_effects, m.usage_method, vm.doctor_instructions
-            FROM visit_medicines vm
-            JOIN medicines m ON vm.medicine_id = m.id
-            WHERE vm.visit_id = %s
-        ''', (visit_id,))
-        medicines = cursor.fetchall()
+        visit, patient_first_name, patient_last_name, date_of_birth, gender, address = visit_data
         
-        cursor.close()
-        conn.close()
+        # Получаем назначенные лекарства
+        medicines_data = db.session.query(
+            Medicine.name,
+            Medicine.description,
+            Medicine.side_effects,
+            Medicine.usage_method,
+            VisitMedicine.doctor_instructions
+        ).join(VisitMedicine, Medicine.id == VisitMedicine.medicine_id)\
+         .filter(VisitMedicine.visit_id == visit_id).all()
         
-        visit['medicines'] = medicines
-        return jsonify(visit)
+        medicines = [{
+            'name': med.name,
+            'description': med.description,
+            'side_effects': med.side_effects,
+            'usage_method': med.usage_method,
+            'doctor_instructions': med.doctor_instructions
+        } for med in medicines_data]
+        
+        result = {
+            'id': visit.id,
+            'patient_id': visit.patient_id,
+            'doctor_id': visit.doctor_id,
+            'date': visit.date.isoformat() if visit.date else None,
+            'location': visit.location,
+            'symptoms': visit.symptoms,
+            'diagnosis': visit.diagnosis,
+            'prescriptions': visit.prescriptions,
+            'patient_first_name': patient_first_name,
+            'patient_last_name': patient_last_name,
+            'date_of_birth': date_of_birth.isoformat() if date_of_birth else None,
+            'gender': gender,
+            'address': address,
+            'medicines': medicines
+        }
+        
+        return jsonify(result)
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -436,7 +487,7 @@ def doctor_add_visit():
     if request.method == 'POST':
         try:
             patient_id = request.form['patient_id']
-            date = request.form['date']
+            date = datetime.strptime(request.form['date'], '%Y-%m-%dT%H:%M')
             location = request.form['location']
             symptoms = request.form['symptoms']
             diagnosis = request.form['diagnosis']
@@ -444,55 +495,45 @@ def doctor_add_visit():
             medicines = request.form.getlist('medicines[]')
             instructions = request.form.getlist('instructions[]')
             
-            conn = get_db_connection()
-            cursor = conn.cursor()
+            # Создаем визит
+            new_visit = Visit(
+                patient_id=patient_id,
+                doctor_id=current_user.id,
+                date=date,
+                location=location,
+                symptoms=symptoms,
+                diagnosis=diagnosis,
+                prescriptions=prescriptions
+            )
             
-            # Insert visit
-            cursor.execute('''
-                INSERT INTO visits (patient_id, doctor_id, date, location, symptoms, diagnosis, prescriptions)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (patient_id, current_user.id, date, location, symptoms, diagnosis, prescriptions))
+            db.session.add(new_visit)
+            db.session.flush()  # Получаем ID нового визита
             
-            visit_id = cursor.lastrowid
-            
-            # Insert prescribed medicines
+            # Добавляем лекарства
             for medicine_id, instruction in zip(medicines, instructions):
                 if medicine_id:
-                    cursor.execute('''
-                        INSERT INTO visit_medicines (visit_id, medicine_id, doctor_instructions)
-                        VALUES (%s, %s, %s)
-                    ''', (visit_id, medicine_id, instruction))
+                    visit_medicine = VisitMedicine(
+                        visit_id=new_visit.id,
+                        medicine_id=medicine_id,
+                        doctor_instructions=instruction
+                    )
+                    db.session.add(visit_medicine)
             
-            conn.commit()
-            cursor.close()
-            conn.close()
+            db.session.commit()
             
             flash('Визит успешно добавлен', 'success')
             return redirect(url_for('doctor_add_visit'))
         
         except Exception as e:
+            db.session.rollback()
             flash(f'Ошибка: {str(e)}', 'error')
     
-    # Get patients and medicines for the form
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute('SELECT id, first_name, last_name FROM patients ORDER BY last_name, first_name')
-        patients = cursor.fetchall()
-        
-        cursor.execute('SELECT id, name FROM medicines ORDER BY name')
-        medicines = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        
-        return render_template('doctor/add_visit.html', patients=patients, medicines=medicines)
+    # Получаем пациентов и лекарства для формы
+    patients = Patient.query.order_by(Patient.last_name, Patient.first_name).all()
+    medicines = Medicine.query.order_by(Medicine.name).all()
     
-    except Exception as e:
-        flash(f'Ошибка: {str(e)}', 'error')
-        return render_template('doctor/add_visit.html', patients=[], medicines=[])
-    
+    return render_template('doctor/add_visit.html', patients=patients, medicines=medicines)
+
 @app.route('/admin/delete-visit/<int:visit_id>', methods=['POST'])
 @login_required
 def admin_delete_visit(visit_id):
@@ -501,23 +542,24 @@ def admin_delete_visit(visit_id):
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Находим визит
+        visit = Visit.query.get(visit_id)
+        if not visit:
+            flash('Визит не найден', 'error')
+            return redirect(url_for('admin_dashboard'))
         
-        # Сначала удаляем связанные записи о лекарствах
-        cursor.execute('DELETE FROM visit_medicines WHERE visit_id = %s', (visit_id,))
+        # Удаляем связанные лекарства
+        VisitMedicine.query.filter_by(visit_id=visit_id).delete()
         
-        # Затем удаляем сам визит
-        cursor.execute('DELETE FROM visits WHERE id = %s', (visit_id,))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
+        # Удаляем визит
+        db.session.delete(visit)
+        db.session.commit()
         
         flash('Визит успешно удален', 'success')
         return redirect(url_for('admin_dashboard'))
     
     except Exception as e:
+        db.session.rollback()
         flash(f'Ошибка при удалении визита: {str(e)}', 'error')
         return redirect(url_for('admin_dashboard'))
 
@@ -530,20 +572,30 @@ def patient_dashboard():
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute('''
-            SELECT v.*, d.first_name as doctor_first_name, d.last_name as doctor_last_name, d.position
-            FROM visits v
-            JOIN doctors d ON v.doctor_id = d.id
-            WHERE v.patient_id = %s
-            ORDER BY v.date DESC
-        ''', (current_user.id,))
-        visits = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
+        visits_data = db.session.query(
+            Visit,
+            Doctor.first_name.label('doctor_first_name'),
+            Doctor.last_name.label('doctor_last_name'),
+            Doctor.position
+        ).join(Doctor, Visit.doctor_id == Doctor.id)\
+         .filter(Visit.patient_id == current_user.id)\
+         .order_by(Visit.date.desc()).all()
+
+        visits = []
+        for visit_data in visits_data:
+            visit, doctor_first_name, doctor_last_name, position = visit_data
+            visits.append({
+                'id': visit.id,
+                'doctor_id': visit.doctor_id,
+                'date': visit.date,
+                'location': visit.location,
+                'symptoms': visit.symptoms,
+                'diagnosis': visit.diagnosis,
+                'prescriptions': visit.prescriptions,
+                'doctor_first_name': doctor_first_name,
+                'doctor_last_name': doctor_last_name,
+                'position': position
+            })
         
         return render_template('patient/dashboard.html', visits=visits)
     
@@ -558,37 +610,56 @@ def patient_visit_detail(visit_id):
         return jsonify({'error': 'Доступ запрещен'}), 403
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        # Получаем детали визита
+        visit_data = db.session.query(
+            Visit,
+            Doctor.first_name.label('doctor_first_name'),
+            Doctor.last_name.label('doctor_last_name'),
+            Doctor.position
+        ).join(Doctor, Visit.doctor_id == Doctor.id)\
+         .filter(Visit.id == visit_id, Visit.patient_id == current_user.id).first()
         
-        cursor.execute('''
-            SELECT v.*, d.first_name as doctor_first_name, d.last_name as doctor_last_name, d.position
-            FROM visits v
-            JOIN doctors d ON v.doctor_id = d.id
-            WHERE v.id = %s AND v.patient_id = %s
-        ''', (visit_id, current_user.id))
-        visit = cursor.fetchone()
-        
-        if not visit:
+        if not visit_data:
             return jsonify({'error': 'Визит не найден'}), 404
         
-        cursor.execute('''
-            SELECT m.name, m.description, m.usage_method, vm.doctor_instructions
-            FROM visit_medicines vm
-            JOIN medicines m ON vm.medicine_id = m.id
-            WHERE vm.visit_id = %s
-        ''', (visit_id,))
-        medicines = cursor.fetchall()
+        visit, doctor_first_name, doctor_last_name, position = visit_data
         
-        cursor.close()
-        conn.close()
+        # Получаем назначенные лекарства
+        medicines_data = db.session.query(
+            Medicine.name,
+            Medicine.description,
+            Medicine.usage_method,
+            VisitMedicine.doctor_instructions
+        ).join(VisitMedicine, Medicine.id == VisitMedicine.medicine_id)\
+         .filter(VisitMedicine.visit_id == visit_id).all()
         
-        visit['medicines'] = medicines
-        return jsonify(visit)
+        medicines = [{
+            'name': med.name,
+            'description': med.description,
+            'usage_method': med.usage_method,
+            'doctor_instructions': med.doctor_instructions
+        } for med in medicines_data]
+        
+        result = {
+            'id': visit.id,
+            'patient_id': visit.patient_id,
+            'doctor_id': visit.doctor_id,
+            'date': visit.date.isoformat() if visit.date else None,
+            'location': visit.location,
+            'symptoms': visit.symptoms,
+            'diagnosis': visit.diagnosis,
+            'prescriptions': visit.prescriptions,
+            'doctor_first_name': doctor_first_name,
+            'doctor_last_name': doctor_last_name,
+            'position': position,
+            'medicines': medicines
+        }
+        
+        return jsonify(result)
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
+
 @app.route('/admin/search-patients', methods=['POST'])
 @login_required
 def admin_search_patients():
@@ -599,43 +670,39 @@ def admin_search_patients():
     search_query = request.json.get('search_query')
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
         if search_type == 'visit_date':
             # Поиск по дате визита
-            cursor.execute('''
-                SELECT DISTINCT p.* 
-                FROM patients p
-                JOIN visits v ON p.id = v.patient_id
-                WHERE DATE(v.date) = %s
-            ''', (search_query,))
+            date_obj = datetime.strptime(search_query, '%Y-%m-%d').date()
+            patients = Patient.query.join(Visit).filter(
+                db.func.date(Visit.date) == date_obj
+            ).distinct().all()
         
         elif search_type == 'diagnosis':
             # Поиск по диагнозу
-            cursor.execute('''
-                SELECT DISTINCT p.* 
-                FROM patients p
-                JOIN visits v ON p.id = v.patient_id
-                WHERE v.diagnosis LIKE %s
-            ''', (f'%{search_query}%',))
+            patients = Patient.query.join(Visit).filter(
+                Visit.diagnosis.like(f'%{search_query}%')
+            ).distinct().all()
         
         elif search_type == 'side_effects':
             # Поиск по побочным эффектам лекарств
-            cursor.execute('''
-                SELECT DISTINCT p.* 
-                FROM patients p
-                JOIN visits v ON p.id = v.patient_id
-                JOIN visit_medicines vm ON v.id = vm.visit_id
-                JOIN medicines m ON vm.medicine_id = m.id
-                WHERE m.side_effects LIKE %s
-            ''', (f'%{search_query}%',))
+            patients = Patient.query.join(Visit).join(VisitMedicine).join(Medicine).filter(
+                Medicine.side_effects.like(f'%{search_query}%')
+            ).distinct().all()
         
-        patients = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        # Преобразуем в JSON-совместимый формат
+        patients_data = []
+        for patient in patients:
+            patients_data.append({
+                'id': patient.id,
+                'first_name': patient.first_name,
+                'last_name': patient.last_name,
+                'gender': patient.gender,
+                'date_of_birth': patient.date_of_birth.isoformat() if patient.date_of_birth else None,
+                'address': patient.address,
+                'login': patient.login
+            })
         
-        return jsonify(patients)
+        return jsonify(patients_data)
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -650,34 +717,21 @@ def admin_search_suggestions():
     search_query = request.json.get('search_query')
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
         if search_type == 'diagnosis':
-            cursor.execute('''
-                SELECT DISTINCT diagnosis as suggestion 
-                FROM visits 
-                WHERE diagnosis LIKE %s 
-                LIMIT 10
-            ''', (f'%{search_query}%',))
+            suggestions = db.session.query(Visit.diagnosis).filter(
+                Visit.diagnosis.like(f'%{search_query}%')
+            ).distinct().limit(10).all()
         
         elif search_type == 'side_effects':
-            cursor.execute('''
-                SELECT DISTINCT side_effects as suggestion 
-                FROM medicines 
-                WHERE side_effects LIKE %s 
-                LIMIT 10
-            ''', (f'%{search_query}%',))
+            suggestions = db.session.query(Medicine.side_effects).filter(
+                Medicine.side_effects.like(f'%{search_query}%')
+            ).distinct().limit(10).all()
         
-        suggestions = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        
-        return jsonify(suggestions)
+        suggestions_data = [{'suggestion': s[0]} for s in suggestions]
+        return jsonify(suggestions_data)
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/admin/delete-doctor/<int:doctor_id>', methods=['POST'])
 @login_required
@@ -687,30 +741,27 @@ def admin_delete_doctor(doctor_id):
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            flash('Врач не найден', 'error')
+            return redirect(url_for('admin_doctors_list'))
         
-        # Check if doctor has any visits
-        cursor.execute("SELECT COUNT(*) FROM visits WHERE doctor_id = %s", (doctor_id,))
-        visit_count = cursor.fetchone()[0]
-        
+        # Проверяем, есть ли у врача визиты
+        visit_count = Visit.query.filter_by(doctor_id=doctor_id).count()
         if visit_count > 0:
             flash('Нельзя удалить врача, у которого есть записи о визитах', 'error')
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('admin_doctors_list'))
         
-        # Delete doctor
-        cursor.execute("DELETE FROM doctors WHERE id = %s", (doctor_id,))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
+        db.session.delete(doctor)
+        db.session.commit()
         
         flash('Врач успешно удален', 'success')
         
     except Exception as e:
+        db.session.rollback()
         flash(f'Ошибка при удалении врача: {str(e)}', 'error')
     
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_doctors_list'))
 
 @app.route('/admin/delete-patient/<int:patient_id>', methods=['POST'])
 @login_required
@@ -720,32 +771,28 @@ def admin_delete_patient(patient_id):
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        patient = Patient.query.get(patient_id)
+        if not patient:
+            flash('Пациент не найден', 'error')
+            return redirect(url_for('admin_patients_list'))
         
-        # Check if patient has any visits
-        cursor.execute("SELECT COUNT(*) FROM visits WHERE patient_id = %s", (patient_id,))
-        visit_count = cursor.fetchone()[0]
-        
+        # Проверяем, есть ли у пациента визиты
+        visit_count = Visit.query.filter_by(patient_id=patient_id).count()
         if visit_count > 0:
             flash('Нельзя удалить пациента, у которого есть записи о визитах', 'error')
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('admin_patients_list'))
         
-        # Delete patient
-        cursor.execute("DELETE FROM patients WHERE id = %s", (patient_id,))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
+        db.session.delete(patient)
+        db.session.commit()
         
         flash('Пациент успешно удален', 'success')
         
     except Exception as e:
+        db.session.rollback()
         flash(f'Ошибка при удалении пациента: {str(e)}', 'error')
     
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_patients_list'))
 
-# Also add these routes to view doctors and patients lists
 @app.route('/admin/doctors')
 @login_required
 def admin_doctors_list():
@@ -754,15 +801,7 @@ def admin_doctors_list():
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute('SELECT * FROM doctors ORDER BY last_name, first_name')
-        doctors = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        
+        doctors = Doctor.query.order_by(Doctor.last_name, Doctor.first_name).all()
         return render_template('admin/doctors_list.html', doctors=doctors)
     
     except Exception as e:
@@ -777,21 +816,12 @@ def admin_patients_list():
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute('SELECT * FROM patients ORDER BY last_name, first_name')
-        patients = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        
+        patients = Patient.query.order_by(Patient.last_name, Patient.first_name).all()
         return render_template('admin/patients_list.html', patients=patients)
     
     except Exception as e:
         flash(f'Ошибка: {str(e)}', 'error')
         return render_template('admin/patients_list.html', patients=[])
-    
 
 @app.route('/admin/delete-medicine/<int:medicine_id>', methods=['POST'])
 @login_required
@@ -801,27 +831,24 @@ def admin_delete_medicine(medicine_id):
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        medicine = Medicine.query.get(medicine_id)
+        if not medicine:
+            flash('Лекарство не найдено', 'error')
+            return redirect(url_for('admin_medicines_list'))
         
-        # Check if medicine is used in any visits
-        cursor.execute("SELECT COUNT(*) FROM visit_medicines WHERE medicine_id = %s", (medicine_id,))
-        usage_count = cursor.fetchone()[0]
-        
+        # Проверяем, используется ли лекарство в визитах
+        usage_count = VisitMedicine.query.filter_by(medicine_id=medicine_id).count()
         if usage_count > 0:
             flash('Нельзя удалить лекарство, которое используется в записях о визитах', 'error')
             return redirect(url_for('admin_medicines_list'))
         
-        # Delete medicine
-        cursor.execute("DELETE FROM medicines WHERE id = %s", (medicine_id,))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
+        db.session.delete(medicine)
+        db.session.commit()
         
         flash('Лекарство успешно удалено', 'success')
         
     except Exception as e:
+        db.session.rollback()
         flash(f'Ошибка при удалении лекарства: {str(e)}', 'error')
     
     return redirect(url_for('admin_medicines_list'))
@@ -834,15 +861,7 @@ def admin_medicines_list():
         return redirect(url_for('index'))
     
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute('SELECT * FROM medicines ORDER BY name')
-        medicines = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        
+        medicines = Medicine.query.order_by(Medicine.name).all()
         return render_template('admin/medicines_list.html', medicines=medicines)
     
     except Exception as e:
@@ -850,4 +869,4 @@ def admin_medicines_list():
         return render_template('admin/medicines_list.html', medicines=[])
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
