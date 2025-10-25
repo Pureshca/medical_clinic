@@ -214,11 +214,6 @@ def admin_visit_detail(visit_id):
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/health")
-def health_check():
-    return {"status": "healthy"}, 200
-
-
 @app.route("/admin/add-doctor", methods=["GET", "POST"])
 @login_required
 def admin_add_doctor():
@@ -695,6 +690,20 @@ def admin_delete_medicine(medicine_id):
     return redirect(url_for("admin_medicines_list"))
 
 
+import logging
+
+
+@app.before_first_request
+def startup():
+    logging.info("Application starting...")
+
+
+@app.route("/health")
+def health_check():
+    logging.info("Health check called")
+    return {"status": "healthy"}, 200
+
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     # Логируем ошибку, но не показываем пользователю
@@ -712,9 +721,5 @@ def handle_exception(e):
 
 
 if __name__ == "__main__":
-    # Всегда запускаем сервер
-    if os.getenv("FLASK_ENV") == "production":
-        print("Starting Flask production server...")
-        app.run(host="0.0.0.0", port=5000, debug=False)
-    print("=== FORCING FLASK SERVER START ===")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    # Для локальной разработки
+    app.run(host="0.0.0.0", port=5000, debug=True)
