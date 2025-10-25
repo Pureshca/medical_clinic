@@ -1,26 +1,26 @@
-FROM python:3.11-slim
+FROM ubuntu:22.04
 
 WORKDIR /app
 
-# Установка системных зависимостей для psycopg2
-RUN apt-get update && apt-get install -y \
+# Установка Python и зависимостей
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-dev \
     postgresql-client \
     libpq-dev \
     gcc \
-    python3-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && rm -rf /var/lib/apt/lists/*
 
-# Обновление pip
-RUN pip install --upgrade pip setuptools wheel
+# Создание симлинка для python
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Копирование и установка зависимостей
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --upgrade pip
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Копирование приложения
 COPY . .
 RUN mkdir -p logs
 
 EXPOSE 5000
-CMD ["python", "app.py"]
+CMD ["python3", "app.py"]
