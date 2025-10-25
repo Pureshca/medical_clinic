@@ -6,6 +6,7 @@ from flask_login import (
     logout_user,
     current_user,
 )
+from sqlalchemy import text
 from models import (
     db,
     Admin,
@@ -217,7 +218,7 @@ def admin_visit_detail(visit_id):
 def health_check():
     try:
         # Проверка подключения к БД
-        db.session.execute("SELECT 1")
+        db.session.execute(text("SELECT 1"))
         return {"status": "healthy", "database": "connected"}, 200
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}, 500
