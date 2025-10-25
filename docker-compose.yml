@@ -16,7 +16,9 @@ services:
       - medical-network
 
   web:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "5000:5000"
     environment:
@@ -31,7 +33,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health', timeout=2)"]
       interval: 30s
       timeout: 10s
       retries: 3
