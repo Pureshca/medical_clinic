@@ -699,11 +699,6 @@ def admin_delete_medicine(medicine_id):
     return redirect(url_for("admin_medicines_list"))
 
 
-@app.route("/health")
-def health_check():
-    return jsonify({"status": "healthy"}), 200
-
-
 @app.errorhandler(Exception)
 def handle_exception(e):
     # Логируем ошибку, но не показываем пользователю
