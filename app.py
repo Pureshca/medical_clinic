@@ -716,3 +716,5 @@ if __name__ == "__main__":
     if os.getenv("FLASK_ENV") == "production":
         print("Starting Flask production server...")
         app.run(host="0.0.0.0", port=5000, debug=False)
+    print("=== FORCING FLASK SERVER START ===")
+    app.run(host="0.0.0.0", port=5000, debug=False)
