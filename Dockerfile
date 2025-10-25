@@ -1,26 +1,28 @@
-FROM ubuntu:22.04
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Установка Python и зависимостей
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-dev \
+RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq-dev \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    python3-dev \
+    postgresql-server-dev-all
 
-# Создание симлинка для python
-RUN ln -s /usr/bin/python3 /usr/bin/python
+# Проверяем что pg_config установлен
+RUN which pg_config || echo "pg_config not found"
+RUN pg_config --version || echo "pg_config not working"
 
 COPY requirements.txt .
-RUN pip3 install --upgrade pip
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip
+
+# Пробуем установить psycopg2 разными способами
+RUN pip install psycopg2-binary==2.9.7 || \
+    pip install psycopg2==2.9.7 || \
+    echo "Failed to install psycopg2"
 
 COPY . .
 RUN mkdir -p logs
 
 EXPOSE 5000
-CMD ["python3", "app.py"]
+CMD ["python", "app.py"]
