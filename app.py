@@ -216,12 +216,7 @@ def admin_visit_detail(visit_id):
 
 @app.route("/health")
 def health_check():
-    try:
-        # Проверка подключения к БД
-        db.session.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected"}, 200
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}, 500
+    return {"status": "healthy"}, 200
 
 
 @app.route("/admin/add-doctor", methods=["GET", "POST"])
