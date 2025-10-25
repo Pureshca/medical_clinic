@@ -33,11 +33,11 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: [ "CMD-SHELL", "timeout 10 bash -c 'until curl -f http://localhost:5000/health; do sleep 2; done' || exit 1" ]
-      interval: 20s
-      timeout: 30s
-      retries: 6
-      start_period: 120s
+      test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   db:
     image: postgres:15

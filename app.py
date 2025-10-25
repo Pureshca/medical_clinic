@@ -712,6 +712,7 @@ def handle_exception(e):
 
 
 if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)
     # В продакшене используем gunicorn, для разработки - встроенный сервер
     if os.getenv("FLASK_ENV") == "production":
         app.run(host="0.0.0.0", port=5000)
