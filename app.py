@@ -213,6 +213,11 @@ def admin_visit_detail(visit_id):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/health")
+def health_check():
+    return {"status": "healthy"}, 200
+
+
 @app.route("/admin/add-doctor", methods=["GET", "POST"])
 @login_required
 def admin_add_doctor():
@@ -693,20 +698,22 @@ def admin_delete_medicine(medicine_id):
 def health_check():
     return jsonify({"status": "healthy"}), 200
 
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     # Логируем ошибку, но не показываем пользователю
     print(f"Global error handler: {str(e)}")
     print(traceback.format_exc())
-    
+
     # Если это ошибка атрибута, связанная с SQLAlchemy
     if "has no attribute" in str(e) and "sqlalchemy" in str(e):
         # Просто логируем, не показываем пользователю
-        return redirect(request.referrer or url_for('index'))
-    
+        return redirect(request.referrer or url_for("index"))
+
     # Для других ошибок показываем стандартное сообщение
     flash("Произошла внутренняя ошибка сервера", "error")
-    return redirect(url_for('index'))
+    return redirect(url_for("index"))
+
 
 if __name__ == "__main__":
     # В продакшене используем gunicorn, для разработки - встроенный сервер
