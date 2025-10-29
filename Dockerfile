@@ -4,24 +4,19 @@ WORKDIR /app
 
 # Установка системных зависимостей
 RUN apt-get update && apt-get install -y \
-    postgresql-client \
-    libpq5 \
-    curl \
+    gcc \
+    postgresql-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Копируем зависимости
-COPY pyproject.toml .
+# Копирование requirements и установка Python зависимостей
 COPY requirements.txt .
-
-# Обновляем pip и устанавливаем зависимости
-RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем весь проект
+# Копирование исходного кода
 COPY . .
 
-# Создаем папку для логов
-RUN mkdir -p logs
+# Создание директории для логов
+RUN mkdir -p /app/logs
 
-# Используем gunicorn для запуска
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# Запуск приложения
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "app:app"]
