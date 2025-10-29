@@ -83,19 +83,31 @@ def wait_for_db():
 
 def initialize_database():
     """Инициализация базы данных с обработкой ошибок"""
-    try:
-        with app.app_context():
-            print("🔄 Creating database tables...")
-            db.create_all()
-            print("✅ Database tables created successfully!")
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            with app.app_context():
+                print(
+                    f"🔄 Creating database tables (attempt {attempt + 1}/{max_retries})..."
+                )
+                db.create_all()
+                print("✅ Database tables created successfully!")
 
-            print("🔄 Populating database with initial data...")
-            populate_db()
-            print("✅ Database populated successfully!")
+                print("🔄 Populating database with initial data...")
+                populate_db()
+                print("✅ Database populated successfully!")
+                return True
 
-    except Exception as e:
-        print(f"❌ Error during database initialization: {e}")
-        traceback.print_exc()
+        except Exception as e:
+            print(
+                f"❌ Error during database initialization (attempt {attempt + 1}): {e}"
+            )
+            if attempt < max_retries - 1:
+                print("⏳ Retrying in 5 seconds...")
+                time.sleep(5)
+            else:
+                print("❌ All retries failed")
+                return False
 
 
 @app.route("/health")
@@ -760,14 +772,16 @@ def handle_exception(e):
     return redirect(url_for("index"))
 
 
-# Инициализация при запуске
 if __name__ == "__main__":
-    # Для прямого запуска
     if wait_for_db():
-        initialize_database()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+        if initialize_database():
+            app.run(host="0.0.0.0", port=5000, debug=False)
+        else:
+            print("❌ Failed to initialize database")
+    else:
+        print("❌ Failed to connect to database")
 else:
-    # Для запуска в gunicorn/uwsgi
+    # Для запуска в gunicorn
     with app.app_context():
         if wait_for_db():
             initialize_database()
