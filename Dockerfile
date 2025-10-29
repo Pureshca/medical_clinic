@@ -24,4 +24,4 @@ COPY . .
 RUN mkdir -p logs
 
 # Используем gunicorn для запуска
-CMD sh -c "echo '=== Starting Application ===' && python -c 'import sys; print(\"Python path:\", sys.path)' && python -c 'import os; print(\"Environment:\", dict(os.environ))' &&  echo '=== Starting Main Application ===' &&  exec python app.py"
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
