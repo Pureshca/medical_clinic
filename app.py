@@ -36,8 +36,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config["SQLALCHEMY_DATABASE_URI"] = (
     f'sqlite:///{os.path.join(basedir, "medical_clinic.db")}'
 )
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    "DATABASE_URL", f'sqlite:///{os.path.join(basedir, "medical_clinic.db")}'
+)
 # Инициализируем базу данных
 db.init_app(app)
 
@@ -55,6 +56,16 @@ def load_user(user_id):
 with app.app_context():
     db.create_all()
     populate_db()
+
+
+@app.route("/health")
+def health_check():
+    try:
+        # Проверяем подключение к базе данных
+        db.session.execute(text("SELECT 1"))
+        return {"status": "healthy", "database": "connected"}, 200
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}, 500
 
 
 # Routes
@@ -696,12 +707,6 @@ import logging
 @app.before_first_request
 def startup():
     logging.info("Application starting...")
-
-
-@app.route("/health")
-def health_check():
-    logging.info("Health check called")
-    return {"status": "healthy"}, 200
 
 
 @app.errorhandler(Exception)
