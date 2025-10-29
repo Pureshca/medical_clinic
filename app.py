@@ -98,19 +98,6 @@ def initialize_database():
         traceback.print_exc()
 
 
-# Инициализация при запуске
-if __name__ != "__main__":
-    # Для запуска в gunicorn/uwsgi
-    with app.app_context():
-        if wait_for_db():
-            initialize_database()
-
-# Инициализация при прямом запуске
-if __name__ == "__main__":
-    if wait_for_db():
-        initialize_database()
-
-
 @app.route("/health")
 def health_check():
     try:
@@ -757,11 +744,6 @@ def admin_delete_medicine(medicine_id):
 import logging
 
 
-@app.before_first_request
-def startup():
-    logging.info("Application starting...")
-
-
 @app.errorhandler(Exception)
 def handle_exception(e):
     # Логируем ошибку, но не показываем пользователю
@@ -778,6 +760,14 @@ def handle_exception(e):
     return redirect(url_for("index"))
 
 
+# Инициализация при запуске
 if __name__ == "__main__":
-    # Для локальной разработки
+    # Для прямого запуска
+    if wait_for_db():
+        initialize_database()
     app.run(host="0.0.0.0", port=5000, debug=True)
+else:
+    # Для запуска в gunicorn/uwsgi
+    with app.app_context():
+        if wait_for_db():
+            initialize_database()

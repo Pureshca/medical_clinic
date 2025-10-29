@@ -2,7 +2,7 @@ import hashlib
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-
+from sqlalchemy import String, Integer, Text, Date, DateTime, ForeignKey
 
 db = SQLAlchemy()
 
@@ -31,7 +31,7 @@ class Patient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    gender = db.Column(db.String(1), nullable=False)
+    gender = db.Column(String(10), nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
     address = db.Column(db.Text)
     login = db.Column(db.String(50), unique=True, nullable=False)
