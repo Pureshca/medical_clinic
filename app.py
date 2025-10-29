@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import (
     LoginManager,
@@ -6,6 +7,7 @@ from flask_login import (
     logout_user,
     current_user,
 )
+
 from sqlalchemy import text
 from models import (
     db,
@@ -21,6 +23,7 @@ from models import (
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import time
 import traceback
 import hashlib
 
@@ -32,13 +35,19 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "fallback-secret-key")
 
 
 # Используем SQLite для простоты
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config["SQLALCHEMY_DATABASE_URI"] = (
-    f'sqlite:///{os.path.join(basedir, "medical_clinic.db")}'
-)
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-    "DATABASE_URL", f'sqlite:///{os.path.join(basedir, "medical_clinic.db")}'
-)
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    # Fallback для разработки
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    database_url = f'sqlite:///{os.path.join(basedir, "medical_clinic.db")}'
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+
 # Инициализируем базу данных
 db.init_app(app)
 
@@ -52,10 +61,54 @@ def load_user(user_id):
     return User.get(user_id)
 
 
-# Создаем таблицы и заполняем данными
-with app.app_context():
-    db.create_all()
-    populate_db()
+def wait_for_db():
+    """Ждем пока база данных станет доступной"""
+    max_retries = 30
+    retry_interval = 2
+
+    for i in range(max_retries):
+        try:
+            with app.app_context():
+                db.session.execute(text("SELECT 1"))
+                print("✅ Database connection successful!")
+                return True
+        except Exception as e:
+            if i < max_retries - 1:
+                print(f"⏳ Waiting for database... ({i+1}/{max_retries}) - {e}")
+                time.sleep(retry_interval)
+            else:
+                print(f"❌ Database connection failed after {max_retries} retries: {e}")
+                return False
+
+
+def initialize_database():
+    """Инициализация базы данных с обработкой ошибок"""
+    try:
+        with app.app_context():
+            print("🔄 Creating database tables...")
+            db.create_all()
+            print("✅ Database tables created successfully!")
+
+            print("🔄 Populating database with initial data...")
+            populate_db()
+            print("✅ Database populated successfully!")
+
+    except Exception as e:
+        print(f"❌ Error during database initialization: {e}")
+        traceback.print_exc()
+
+
+# Инициализация при запуске
+if __name__ != "__main__":
+    # Для запуска в gunicorn/uwsgi
+    with app.app_context():
+        if wait_for_db():
+            initialize_database()
+
+# Инициализация при прямом запуске
+if __name__ == "__main__":
+    if wait_for_db():
+        initialize_database()
 
 
 @app.route("/health")

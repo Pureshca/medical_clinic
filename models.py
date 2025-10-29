@@ -94,6 +94,7 @@ class User(UserMixin):
         self.id = id
         self.login = login
         self.role = role
+        # Уникальный ID включающий роль
         self._id = f"{role}_{id}"
 
     def get_id(self):
@@ -106,11 +107,19 @@ class User(UserMixin):
                 return None
             role, id_str = user_id.split("_", 1)
             user_id_int = int(id_str)
-            model = {"admin": Admin, "doctor": Doctor, "patient": Patient}.get(role)
-            if model:
-                obj = model.query.get(user_id_int)
-                if obj:
-                    return User(obj.id, getattr(obj, "login", None), role)
+
+            # Ищем пользователя в соответствующей таблице
+            if role == "admin":
+                obj = Admin.query.get(user_id_int)
+            elif role == "doctor":
+                obj = Doctor.query.get(user_id_int)
+            elif role == "patient":
+                obj = Patient.query.get(user_id_int)
+            else:
+                return None
+
+            if obj:
+                return User(obj.id, getattr(obj, "login", None), role)
             return None
         except Exception as e:
             print(f"Error loading user: {e}")
@@ -120,13 +129,15 @@ class User(UserMixin):
     def authenticate(login, password):
         try:
             entered_hash = hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+            # Проверяем во всех таблицах
             for role, model in [
                 ("admin", Admin),
                 ("doctor", Doctor),
                 ("patient", Patient),
             ]:
                 user = model.query.filter_by(login=login).first()
-                if user and user.password_hash.lower() == entered_hash.lower():
+                if user and user.password_hash == entered_hash:
                     return User(user.id, user.login, role)
             return None
         except Exception as e:
