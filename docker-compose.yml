@@ -39,7 +39,8 @@ services:
       - POSTGRES_USER=medical_user
       - POSTGRES_PASSWORD=medical_password
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init-db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - medical-network
