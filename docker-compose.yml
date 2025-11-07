@@ -36,11 +36,12 @@ services:
   db:
     image: postgres:15
     environment:
-      - POSTGRES_DB=medical_clinic
       - POSTGRES_USER=medical_user
       - POSTGRES_PASSWORD=medical_password
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
     restart: unless-stopped
     networks:
       - medical-network
