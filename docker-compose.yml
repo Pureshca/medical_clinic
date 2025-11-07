@@ -27,7 +27,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
+      test: [ "CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -38,6 +38,7 @@ services:
     environment:
       - POSTGRES_USER=medical_user
       - POSTGRES_PASSWORD=medical_password
+      - POSTGRES_DB=medical_clinic
     volumes:
       - ./init-db/init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
@@ -45,7 +46,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U medical_user" ]
+      test: [ "CMD-SHELL", "pg_isready -U medical_user -d medical_clinic" ]
       interval: 10s
       timeout: 5s
       retries: 5
