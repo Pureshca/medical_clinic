@@ -127,6 +127,16 @@ def initialize_database():
                 return False
 
 
+@app.route("/health")
+def health_check():
+    try:
+        # Проверяем подключение к базе данных
+        db.session.execute(text("SELECT 1"))
+        return {"status": "healthy", "database": "connected"}, 200
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}, 500
+
+
 # Routes
 @app.route("/")
 def index():
