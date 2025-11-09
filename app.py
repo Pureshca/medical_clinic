@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#Test 07.11.2025
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import (
     LoginManager,
@@ -27,7 +25,7 @@ import os
 import time
 import traceback
 import hashlib
-
+from sqlalchemy import text
 
 load_dotenv()
 
@@ -60,6 +58,24 @@ login_manager.login_view = "login"
 @login_manager.user_loader
 def load_user(user_id):
     return User.get(user_id)
+
+
+@app.route("/health")
+def health():
+    try:
+        # быстрый ping БД
+        db.session.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception:
+        db_ok = False
+    return jsonify({"status": "ok", "db": "up" if db_ok else "down"}), (
+        200 if db_ok else 500
+    )
+
+
+@app.route("/api/version")
+def version():
+    return jsonify({"version": os.getenv("APP_VERSION", "dev")})
 
 
 def wait_for_db():
@@ -109,16 +125,6 @@ def initialize_database():
             else:
                 print("❌ All retries failed")
                 return False
-
-
-@app.route("/health")
-def health_check():
-    try:
-        # Проверяем подключение к базе данных
-        db.session.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected"}, 200
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}, 500
 
 
 # Routes
