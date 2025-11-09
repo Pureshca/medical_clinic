@@ -75,7 +75,7 @@ def health():
 
 @app.route("/api/version")
 def version():
-    return jsonify({"version": os.getenv("APP_VERSION", "dev")})
+    return jsonify({"version": os.getenv("APP_VERSION", "main")})
 
 
 def wait_for_db():
@@ -126,9 +126,8 @@ def initialize_database():
                 print("❌ All retries failed")
                 return False
 
-
-@app.route("/health")
-def health_check():
+    # @app.route("/health")
+    # def health_check():
     try:
         # Проверяем подключение к базе данных
         db.session.execute(text("SELECT 1"))
