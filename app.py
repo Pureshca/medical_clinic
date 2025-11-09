@@ -25,7 +25,7 @@ import os
 import time
 import traceback
 import hashlib
-from sqlalchemy import text
+
 
 load_dotenv()
 
@@ -58,24 +58,6 @@ login_manager.login_view = "login"
 @login_manager.user_loader
 def load_user(user_id):
     return User.get(user_id)
-
-
-@app.route("/health")
-def health():
-    try:
-        # быстрый ping БД
-        db.session.execute(text("SELECT 1"))
-        db_ok = True
-    except Exception:
-        db_ok = False
-    return jsonify({"status": "ok", "db": "up" if db_ok else "down"}), (
-        200 if db_ok else 500
-    )
-
-
-@app.route("/api/version")
-def version():
-    return jsonify({"version": os.getenv("APP_VERSION", "main")})
 
 
 def wait_for_db():
@@ -126,8 +108,9 @@ def initialize_database():
                 print("❌ All retries failed")
                 return False
 
-    # @app.route("/health")
-    # def health_check():
+
+@app.route("/health")
+def health_check():
     try:
         # Проверяем подключение к базе данных
         db.session.execute(text("SELECT 1"))
@@ -767,9 +750,6 @@ def admin_delete_medicine(medicine_id):
         flash(f"Ошибка при удалении: {str(e)}", "error")
 
     return redirect(url_for("admin_medicines_list"))
-
-
-import logging
 
 
 @app.errorhandler(Exception)
