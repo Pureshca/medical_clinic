@@ -69,14 +69,16 @@ def wait_for_db():
         try:
             with app.app_context():
                 db.session.execute(text("SELECT 1"))
-                print("✅ Database connection successful!")
+                print("✅ Подключение к базе данных успешно!")
                 return True
         except Exception as e:
             if i < max_retries - 1:
-                print(f"⏳ Waiting for database... ({i+1}/{max_retries}) - {e}")
+                print(f"⏳ Ожидание базы данных... ({i+1}/{max_retries}) - {e}")
                 time.sleep(retry_interval)
             else:
-                print(f"❌ Database connection failed after {max_retries} retries: {e}")
+                print(
+                    f"❌ Подключение к базе данных неудачно после {max_retries} повторных попыток: {e}"
+                )
                 return False
 
 
