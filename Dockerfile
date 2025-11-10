@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq5 \
     curl \
+    wget \
     gcc \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
