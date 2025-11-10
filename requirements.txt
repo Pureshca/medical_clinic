@@ -8,4 +8,4 @@ SQLAlchemy==2.0.23
 requests==2.31.0
 flake8==7.1.1
 bandit==1.7.9
-trufflehog==3.81.7
+trufflehog==2.2.1
