@@ -26,7 +26,6 @@ import time
 import traceback
 import hashlib
 
-
 load_dotenv()
 
 app = Flask(__name__)
@@ -113,12 +112,12 @@ def initialize_database():
 
 @app.route("/health")
 def health_check():
+    db_status = "up"
     try:
-        # Проверяем подключение к базе данных
         db.session.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected"}, 200
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}, 500
+    except Exception:
+        db_status = "down"
+    return jsonify({"status": "ok", "db": db_status}), 200
 
 
 # Routes
