@@ -26,4 +26,4 @@ COPY . .
 RUN mkdir -p logs
 
 # Используем gunicorn для запуска
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "app:app"]
+CMD ["gunicorn","--bind", "0.0.0.0:5000","--workers", "2","--threads", "2","--worker-class", "gthread","--max-requests", "300","--max-requests-jitter", "50","--timeout", "90","app:app"]
