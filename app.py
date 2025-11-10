@@ -112,12 +112,21 @@ def initialize_database():
 
 @app.route("/health")
 def health_check():
-    db_status = "up"
+    # НИЧЕГО тяжёлого не делаем – только подтверждаем, что процесс жив
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route("/health/db")
+def health_db():
     try:
-        db.session.execute(text("SELECT 1"))
-    except Exception:
-        db_status = "down"
-    return jsonify({"status": "ok", "db": db_status}), 200
+        with db.engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return jsonify({"db": "up"}), 200
+    except Exception as e:
+        return (
+            jsonify({"db": "down", "error": str(e)}),
+            200,
+        )
 
 
 # Routes
