@@ -116,6 +116,7 @@ def health_check():
     return jsonify({"status": "ok"}), 200
 
 
+# izmenenia
 @app.route("/health/db")
 def health_db():
     try:
