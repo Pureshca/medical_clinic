@@ -6,7 +6,6 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 import pytest
 from app import app, db
-from models import User, Admin, Doctor, Patient, Medicine, Visit, VisitMedicine
 
 @pytest.fixture(scope="session")
 def test_app():
@@ -16,12 +15,6 @@ def test_app():
 
     with app.app_context():
         db.create_all()
-        # populate test data
-        admin = Admin(login="admin", password_hash="adminpass")
-        doctor = Doctor(login="doctor", password_hash="doctorpass", first_name="John", last_name="Doe", position="Therapist")
-        patient = Patient(login="patient", password_hash="patientpass", first_name="Jane", last_name="Doe", gender="F")
-        db.session.add_all([admin, doctor, patient])
-        db.session.commit()
         yield app
         db.session.remove()
         db.drop_all()
@@ -31,3 +24,9 @@ def db_session(test_app):
     from app import db
     yield db.session
     db.session.rollback()
+
+# <-- добавляем эту фикстуру
+@pytest.fixture
+def client(test_app):
+    return test_app.test_client()
+
