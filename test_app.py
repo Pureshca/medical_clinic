@@ -2,7 +2,6 @@ import os
 import pytest
 from flask import session
 
-# Перед импортом приложения — подменяем базу
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 from app import app, db, User  # noqa
@@ -20,11 +19,6 @@ def client():
         db.session.remove()
         db.drop_all()
 
-
-# ---------------------------
-#   HEALTH CHECK
-# ---------------------------
-
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200
@@ -37,11 +31,6 @@ def test_health_db(client):
     data = response.get_json()
     assert response.status_code == 200
     assert data["db"] == "up"
-
-
-# ---------------------------
-#   AUTH
-# ---------------------------
 
 def test_login_page_loads(client):
     response = client.get("/login")
@@ -59,11 +48,6 @@ def test_login_wrong_credentials(client):
     # декодируем bytes в str
     html = response.data.decode()
     assert "Неверные учетные данные" in html
-
-
-# ---------------------------
-#   LOGIN SIMULATION
-# ---------------------------
 
 class DummyUser:
     """Минимальный мок User для принудительной авторизации."""
@@ -97,11 +81,6 @@ def login_as_patient(client, monkeypatch):
     monkeypatch.setattr("flask_login.utils._get_user", lambda: DummyUser("patient"))
     return client
 
-
-# ---------------------------
-#   ROLE REDIRECTS
-# ---------------------------
-
 def test_redirect_admin(login_as_admin):
     response = login_as_admin.get("/", follow_redirects=False)
     assert response.status_code == 302
@@ -119,11 +98,6 @@ def test_redirect_patient(login_as_patient):
     assert response.status_code == 302
     assert "/patient/dashboard" in response.location
 
-
-# ---------------------------
-#   ACCESS BLOCK
-# ---------------------------
-
 def test_admin_route_forbidden_for_doctor(login_as_doctor):
     response = login_as_doctor.get("/admin/dashboard", follow_redirects=True)
     html = response.data.decode()
@@ -134,11 +108,6 @@ def test_admin_route_forbidden_for_patient(login_as_patient):
     response = login_as_patient.get("/admin/dashboard", follow_redirects=True)
     html = response.data.decode()
     assert "Доступ запрещен" in html
-
-
-# ---------------------------
-#   LOGOUT
-# ---------------------------
 
 def test_logout(login_as_admin):
     response = login_as_admin.get("/logout", follow_redirects=True)
