@@ -1,28 +1,36 @@
 import pytest
-from app import app, db, initialize_database
+from app import app, db
 from models import Admin, Doctor, Patient, Medicine, Visit, VisitMedicine
 from flask import url_for
 from datetime import datetime
 import hashlib
+import os
 
 # ------------------------------
-# Фикстура тестового клиента
+# Фикстура для тестового клиента
 # ------------------------------
 @pytest.fixture(scope="module")
 def test_client():
-    # Настройки тестового приложения
+    # Используем DATABASE_URL из TeamCity, но переключаемся на отдельную тестовую БД или схему
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        database_url = "sqlite:///:memory:"
+
     app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"  # in-memory база для тестов
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     with app.test_client() as client:
         with app.app_context():
-            # Создаем таблицы и заполняем тестовыми данными
+            # Создаем таблицы, если их нет
             db.create_all()
-            # populate_db() вызываем, если она не зависит от Postgres
         yield client
+        # Можно очищать таблицы после тестов
         with app.app_context():
-            db.drop_all()
+            meta = db.metadata
+            for table in reversed(meta.sorted_tables):
+                db.session.execute(table.delete())
+            db.session.commit()
 
 # ------------------------------
 # Вспомогательные функции
