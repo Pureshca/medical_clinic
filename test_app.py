@@ -5,7 +5,7 @@ from flask import session
 # Перед импортом приложения — подменяем базу
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
-from app import app, db, User   # noqa
+from app import app, db, User  # noqa
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def test_health_db(client):
 def test_login_page_loads(client):
     response = client.get("/login")
     assert response.status_code == 200
-    assert b"login" in response.data.lower()
+    assert "login" in response.data.decode().lower()
 
 
 def test_login_wrong_credentials(client):
@@ -56,7 +56,9 @@ def test_login_wrong_credentials(client):
         "password": "wrong"
     }, follow_redirects=True)
 
-    assert "Неверные учетные данные" in response.data
+    # декодируем bytes в str
+    html = response.data.decode()
+    assert "Неверные учетные данные" in html
 
 
 # ---------------------------
@@ -124,12 +126,14 @@ def test_redirect_patient(login_as_patient):
 
 def test_admin_route_forbidden_for_doctor(login_as_doctor):
     response = login_as_doctor.get("/admin/dashboard", follow_redirects=True)
-    assert "Доступ запрещен" in response.data
+    html = response.data.decode()
+    assert "Доступ запрещен" in html
 
 
 def test_admin_route_forbidden_for_patient(login_as_patient):
     response = login_as_patient.get("/admin/dashboard", follow_redirects=True)
-    assert "Доступ запрещен" in response.data
+    html = response.data.decode()
+    assert "Доступ запрещен" in html
 
 
 # ---------------------------
@@ -138,4 +142,5 @@ def test_admin_route_forbidden_for_patient(login_as_patient):
 
 def test_logout(login_as_admin):
     response = login_as_admin.get("/logout", follow_redirects=True)
-    assert "Вы вышли из системы" in response.data
+    html = response.data.decode()
+    assert "Вы вышли из системы" in html
