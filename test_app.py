@@ -1,26 +1,31 @@
 import pytest
 from app import app, db, initialize_database
-from models import User, Admin, Doctor, Patient, Medicine, Visit, VisitMedicine
+from models import Admin, Doctor, Patient, Medicine, Visit, VisitMedicine
 from flask import url_for
 from datetime import datetime
 import hashlib
 
-# Изменение
-
+# ------------------------------
+# Фикстура тестового клиента
+# ------------------------------
 @pytest.fixture(scope="module")
 def test_client():
+    # Настройки тестового приложения
     app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    with app.test_client() as testing_client:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"  # in-memory база для тестов
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    with app.test_client() as client:
         with app.app_context():
+            # Создаем таблицы и заполняем тестовыми данными
             db.create_all()
-            initialize_database()
-        yield testing_client
+            # populate_db() вызываем, если она не зависит от Postgres
+        yield client
         with app.app_context():
             db.drop_all()
 
 # ------------------------------
-# Helper functions
+# Вспомогательные функции
 # ------------------------------
 def create_user(login, password, role):
     password_hash = hashlib.sha256(password.encode()).hexdigest()
@@ -38,7 +43,7 @@ def login_user(client, login, password):
     return client.post("/login", data={"login": login, "password": password}, follow_redirects=True)
 
 # ------------------------------
-# Health checks
+# Health check
 # ------------------------------
 def test_health_routes(test_client):
     rv = test_client.get("/health")
@@ -50,7 +55,7 @@ def test_health_routes(test_client):
     assert rv_db.json["db"] == "up"
 
 # ------------------------------
-# User login/logout
+# Login / Logout
 # ------------------------------
 def test_login_logout(test_client):
     create_user("admin1", "pass123", "admin")
@@ -65,7 +70,7 @@ def test_invalid_login(test_client):
     assert "Неверные учетные данные" in rv.data
 
 # ------------------------------
-# Admin routes
+# Admin CRUD
 # ------------------------------
 def test_admin_add_doctor(test_client):
     create_user("admin2", "pass123", "admin")
@@ -105,7 +110,7 @@ def test_admin_add_medicine(test_client):
     assert "Лекарство успешно добавлено" in rv.data
 
 # ------------------------------
-# Doctor routes
+# Doctor add visit
 # ------------------------------
 def test_doctor_add_visit(test_client):
     doc = create_user("doc1", "pass123", "doctor")
@@ -129,7 +134,7 @@ def test_doctor_add_visit(test_client):
     assert "Визит успешно добавлен" in rv.data
 
 # ------------------------------
-# Access control tests
+# Access control
 # ------------------------------
 def test_access_control(test_client):
     doc = create_user("doc2", "pass123", "doctor")
@@ -144,7 +149,7 @@ def test_access_control(test_client):
     assert "Доступ запрещен" in rv.data
 
 # ------------------------------
-# CRUD delete tests
+# Delete entities
 # ------------------------------
 def test_admin_delete_entities(test_client):
     admin_user = create_user("admin3", "pass123", "admin")
