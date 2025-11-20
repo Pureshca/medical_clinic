@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Абсолютный путь к корню проекта (на уровень выше tests/)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 from models import Patient
 
 def test_patient_gender_validation(app):
