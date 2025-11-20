@@ -112,7 +112,6 @@ def initialize_database():
 
 @app.route("/health")
 def health_check():
-    # НИЧЕГО тяжёлого не делаем – только подтверждаем, что процесс жив
     return jsonify({"status": "ok"}), 200
 
 
