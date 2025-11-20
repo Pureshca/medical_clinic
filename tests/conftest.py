@@ -9,7 +9,6 @@ from models import db, populate_db
 
 @pytest.fixture()
 def app():
-
     with app.app_context():
         db.drop_all()
         db.create_all()
