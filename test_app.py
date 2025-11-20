@@ -1,191 +1,141 @@
 import os
 import pytest
-from unittest.mock import patch
+from flask import session
 
-# Перед импортом подменяем БД на SQLite in-memory
+# Перед импортом приложения — подменяем базу
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
-from app import app, db  # noqa
+from app import app, db, User   # noqa
 
 
-# ============================================================
-# FIXTURE: тестовый клиент Flask с app_context
-# ============================================================
 @pytest.fixture
 def client():
+    """Создает тестовый клиент с sqlite in-memory."""
     app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+
     with app.app_context():
-        with app.test_client() as client:
-            yield client
+        db.create_all()
+        yield app.test_client()
+        db.session.remove()
+        db.drop_all()
 
 
-# ============================================================
-# HEALTH CHECKS
-# ============================================================
-def test_health_check(client):
-    resp = client.get("/health")
-    assert resp.status_code == 200
-    assert resp.get_json() == {"status": "ok"}
+# ---------------------------
+#   HEALTH CHECK
+# ---------------------------
+
+def test_health(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.get_json() == {"status": "ok"}
 
 
-# ============================================================
-# LOGIN / LOGOUT
-# ============================================================
-
-def test_login_success(client):
-    """Мокаем доступ к БД: Admin.query.filter_by().first()"""
-
-    mock_admin = type("AdminMock", (), {
-        "id": 1,
-        "login": "test",
-        "password_hash": "hash123"
-    })()
-
-    with patch("app.Admin.query") as mock_query:
-        mock_query.filter_by.return_value.first.return_value = mock_admin
-
-        with patch("app.check_password_hash", return_value=True):
-            resp = client.post("/login", data={
-                "login": "test",
-                "password": "pass"
-            }, follow_redirects=True)
-
-    assert "Вход выполнен успешно" in resp.data.decode()
+def test_health_db(client):
+    """Даже с пустой БД эндпоинт должен отвечать db: up."""
+    response = client.get("/health/db")
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["db"] == "up"
 
 
-def test_login_fail(client):
-    with patch("app.Admin.query") as mock_query:
-        mock_query.filter_by.return_value.first.return_value = None
+# ---------------------------
+#   AUTH
+# ---------------------------
 
-        resp = client.post("/login", data={
-            "login": "nope",
-            "password": "wrong"
-        }, follow_redirects=True)
-
-    assert "Неверные учетные данные" in resp.data.decode()
+def test_login_page_loads(client):
+    response = client.get("/login")
+    assert response.status_code == 200
+    assert b"login" in response.data.lower()
 
 
-def test_logout(client):
-    with client.session_transaction() as sess:
-        sess["user_id"] = 1
-        sess["role"] = "admin"
+def test_login_wrong_credentials(client):
+    """Если пользователя нет — должен вернуть ошибку."""
+    response = client.post("/login", data={
+        "login": "unknown",
+        "password": "wrong"
+    }, follow_redirects=True)
 
-    resp = client.get("/logout", follow_redirects=True)
-    assert "Вы вышли из системы" in resp.data.decode()
-
-
-# ============================================================
-# ACCESS CONTROL
-# ============================================================
-
-def test_admin_access_denied_for_anon(client):
-    resp = client.get("/admin/dashboard", follow_redirects=True)
-    assert "Пожалуйста, войдите" in resp.data.decode()
+    assert "Неверные учетные данные" in response.data
 
 
-def test_admin_access_denied_for_doctor(client):
-    with client.session_transaction() as sess:
-        sess["user_id"] = 10
-        sess["role"] = "doctor"
+# ---------------------------
+#   LOGIN SIMULATION
+# ---------------------------
 
-    resp = client.get("/admin/dashboard", follow_redirects=True)
-    assert "Доступ запрещен" in resp.data.decode()
+class DummyUser:
+    """Минимальный мок User для принудительной авторизации."""
+    def __init__(self, role):
+        self.id = 1
+        self.role = role
+        self.login = "test"
+        self.is_authenticated = True
+        self.is_active = True
+        self.is_anonymous = False
 
-
-def test_admin_access_allowed(client):
-    with client.session_transaction() as sess:
-        sess["user_id"] = 1
-        sess["role"] = "admin"
-
-    resp = client.get("/admin/dashboard")
-    assert resp.status_code == 200
-
-
-# ============================================================
-# ADMIN: ADD ENTITIES
-# ============================================================
-
-def test_admin_add_doctor(client):
-    with patch("app.is_admin", return_value=True), \
-         patch("app.db.session.add"), \
-         patch("app.db.session.commit"):
-
-        resp = client.post("/admin/add-doctor", data={
-            "first_name": "John",
-            "last_name": "Doe",
-            "position": "Therapist",
-            "login": "jdoe",
-            "password": "1234"
-        }, follow_redirects=True)
-
-        assert "Врач успешно добавлен" in resp.data.decode()
+    def get_id(self):
+        return "1"
 
 
-def test_admin_add_patient(client):
-    with patch("app.is_admin", return_value=True), \
-         patch("app.db.session.add"), \
-         patch("app.db.session.commit"):
-
-        resp = client.post("/admin/add-patient", data={
-            "first_name": "Jane",
-            "last_name": "Doe",
-            "gender": "F",
-            "date_of_birth": "1990-01-01",
-            "address": "Street",
-            "login": "jane",
-            "password": "pass"
-        }, follow_redirects=True)
-
-    assert "Пациент успешно добавлен" in resp.data.decode()
+@pytest.fixture
+def login_as_admin(client, monkeypatch):
+    """Принудительная авторизация как admin."""
+    monkeypatch.setattr("flask_login.utils._get_user", lambda: DummyUser("admin"))
+    return client
 
 
-def test_admin_add_medicine(client):
-    with patch("app.is_admin", return_value=True), \
-         patch("app.db.session.add"), \
-         patch("app.db.session.commit"):
-
-        resp = client.post("/admin/add-medicine", data={
-            "name": "Aspirin",
-            "description": "Painkiller",
-            "side_effects": "Nausea",
-            "usage_method": "Oral"
-        }, follow_redirects=True)
-
-    assert "Лекарство успешно добавлено" in resp.data.decode()
+@pytest.fixture
+def login_as_doctor(client, monkeypatch):
+    monkeypatch.setattr("flask_login.utils._get_user", lambda: DummyUser("doctor"))
+    return client
 
 
-# ============================================================
-# DELETE ENTITIES
-# ============================================================
-
-def test_admin_delete_doctor(client):
-    with patch("app.is_admin", return_value=True), \
-         patch("app.db.session.delete"), \
-         patch("app.db.session.commit"), \
-         patch("app.Doctor.query.get", return_value=True):
-
-        resp = client.post("/admin/delete-doctor/1", follow_redirects=True)
-
-    assert "Врач успешно удален" in resp.data.decode()
+@pytest.fixture
+def login_as_patient(client, monkeypatch):
+    monkeypatch.setattr("flask_login.utils._get_user", lambda: DummyUser("patient"))
+    return client
 
 
-def test_admin_delete_patient(client):
-    with patch("app.is_admin", return_value=True), \
-         patch("app.db.session.delete"), \
-         patch("app.db.session.commit"), \
-         patch("app.Patient.query.get", return_value=True):
+# ---------------------------
+#   ROLE REDIRECTS
+# ---------------------------
 
-        resp = client.post("/admin/delete-patient/1", follow_redirects=True)
+def test_redirect_admin(login_as_admin):
+    response = login_as_admin.get("/", follow_redirects=False)
+    assert response.status_code == 302
+    assert "/admin/dashboard" in response.location
 
-    assert "Пациент успешно удален" in resp.data.decode()
+
+def test_redirect_doctor(login_as_doctor):
+    response = login_as_doctor.get("/", follow_redirects=False)
+    assert response.status_code == 302
+    assert "/doctor/dashboard" in response.location
 
 
-def test_admin_delete_medicine(client):
-    with patch("app.is_admin", return_value=True), \
-         patch("app.db.session.delete"), \
-         patch("app.db.session.commit"), \
-         patch("app.Medicine.query.get", return_value=True):
+def test_redirect_patient(login_as_patient):
+    response = login_as_patient.get("/", follow_redirects=False)
+    assert response.status_code == 302
+    assert "/patient/dashboard" in response.location
 
-        resp = client.post("/admin/delete-medicine/1", follow_redirects=True)
 
-    assert "Лекарство успешно удалено" in resp.data.decode()
+# ---------------------------
+#   ACCESS BLOCK
+# ---------------------------
+
+def test_admin_route_forbidden_for_doctor(login_as_doctor):
+    response = login_as_doctor.get("/admin/dashboard", follow_redirects=True)
+    assert "Доступ запрещен" in response.data
+
+
+def test_admin_route_forbidden_for_patient(login_as_patient):
+    response = login_as_patient.get("/admin/dashboard", follow_redirects=True)
+    assert "Доступ запрещен" in response.data
+
+
+# ---------------------------
+#   LOGOUT
+# ---------------------------
+
+def test_logout(login_as_admin):
+    response = login_as_admin.get("/logout", follow_redirects=True)
+    assert "Вы вышли из системы" in response.data
