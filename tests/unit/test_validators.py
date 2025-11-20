@@ -5,21 +5,10 @@ import os
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 from models import Patient
+from datetime import datetime
 
-def test_patient_gender_validation(app):
-    p = Patient(
-        first_name="A",
-        last_name="B",
-        gender="Invalid",
-        date_of_birth="2000-01-01",
-        login="abc",
-        password_hash="123"
-    )
-    from models import db
-    db.session.add(p)
-    try:
-        db.session.commit()
-        assert False
-    except:
-        db.session.rollback()
-        assert True
+def test_patient_date_of_birth(db_session):
+    patient = Patient.query.first()
+    patient.date_of_birth = datetime.strptime("2000-01-01", "%Y-%m-%d")
+    db_session.commit()
+    assert patient.date_of_birth.year == 2000

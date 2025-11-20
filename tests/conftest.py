@@ -5,25 +5,29 @@ import os
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 import pytest
-from app import app as flask_app  # используем существующий объект app
-from models import db, populate_db
+from app import app, db
+from models import User, Admin, Doctor, Patient, Medicine, Visit, VisitMedicine
 
 @pytest.fixture(scope="session")
-def app():
-    # Используем существующее приложение
-    flask_app.config.update({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",  # in-memory база для тестов
-        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-    })
+def test_app():
+    app.config["TESTING"] = True
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    app.config["WTF_CSRF_ENABLED"] = False
 
-    with flask_app.app_context():
-        db.drop_all()
+    with app.app_context():
         db.create_all()
-        populate_db()
+        # populate test data
+        admin = Admin(login="admin", password_hash="adminpass")
+        doctor = Doctor(login="doctor", password_hash="doctorpass", first_name="John", last_name="Doe", position="Therapist")
+        patient = Patient(login="patient", password_hash="patientpass", first_name="Jane", last_name="Doe", gender="F")
+        db.session.add_all([admin, doctor, patient])
+        db.session.commit()
+        yield app
+        db.session.remove()
+        db.drop_all()
 
-    yield flask_app
-
-@pytest.fixture()
-def client(app):
-    return app.test_client()
+@pytest.fixture
+def db_session(test_app):
+    from app import db
+    yield db.session
+    db.session.rollback()

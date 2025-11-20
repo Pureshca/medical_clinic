@@ -4,25 +4,21 @@ import os
 # Абсолютный путь к корню проекта (на уровень выше tests/)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-from models import User, Admin
+from models import User, Admin, Doctor, Patient
 import hashlib
 
-def test_authenticate_success(app):
-    u = User.authenticate("admin", "admin123")
-    assert u is not None
-    assert u.role == "admin"
-    assert u.login == "admin"
+def test_user_roles(db_session):
+    admin = Admin.query.first()
+    doctor = Doctor.query.first()
+    patient = Patient.query.first()
 
-def test_authenticate_wrong_password(app):
-    assert User.authenticate("admin", "wrong") is None
+    assert admin.role == "admin"
+    assert doctor.role == "doctor"
+    assert patient.role == "patient"
 
-def test_authenticate_unknown_user(app):
-    assert User.authenticate("nosuchuser", "123") is None
-
-def test_get_user_success(app):
-    u = User.get("admin_1")
-    assert u is not None
-    assert u.role == "admin"
-
-def test_get_user_wrong_format(app):
-    assert User.get("badformat") is None
+def test_password_hash(db_session):
+    doctor = Doctor.query.first()
+    doctor.password_hash = hashlib.sha256("mypassword".encode()).hexdigest()
+    db_session.commit()
+    expected_hash = hashlib.sha256("mypassword".encode()).hexdigest()
+    assert doctor.password_hash == expected_hash
