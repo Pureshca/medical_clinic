@@ -5,6 +5,8 @@ from flask import url_for
 from datetime import datetime
 import hashlib
 
+# Изменение
+
 @pytest.fixture(scope="module")
 def test_client():
     app.config["TESTING"] = True
