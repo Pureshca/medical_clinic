@@ -1,8 +1,0 @@
-def test_medicine_add(client):
-    client.post("/login", json={"login": "admin", "password": "admin123"})
-
-    res = client.post("/admin/medicine", json={
-        "name": "TestMed",
-        "description": "...",
-    })
-    assert res.status_code == 201
