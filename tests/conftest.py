@@ -5,12 +5,10 @@ import os
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 import pytest
-from app import create_app
 from models import db, populate_db
 
 @pytest.fixture()
 def app():
-    app = create_app(testing=True)
 
     with app.app_context():
         db.drop_all()
