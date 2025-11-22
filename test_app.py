@@ -149,4 +149,4 @@ def test_logout(login_as_admin):
     """Выход из системы."""
     response = login_as_admin.get("/logout", follow_redirects=True)
     html = response.data.decode()
-    assert "Вы вышли из системы" in html
+    assert "Вы вышли из системы но нет аххаха" in html
