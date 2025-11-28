@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict BNcDxKLEAnc5agJb2kNhn2BEfSJeostgM70NA9ht7g2B1Ze1F9pGEhfwW8ValIC
+\restrict NV6pfaDyAW6Ydc6wMbQsLGtbAgXbgAR1bgAhNyHe4hnMeJ0ymepuwMxbSOL15RX
 
 -- Dumped from database version 15.14 (Debian 15.14-1.pgdg13+1)
 -- Dumped by pg_dump version 15.14 (Debian 15.14-1.pgdg13+1)
@@ -69,7 +69,8 @@ CREATE TABLE public.doctors (
     "position" character varying(100) NOT NULL,
     login character varying(50) NOT NULL,
     password_hash character varying(255) NOT NULL,
-    created_at timestamp without time zone
+    created_at timestamp without time zone,
+    middle_name character varying(50)
 );
 
 
@@ -420,5 +421,5 @@ ALTER TABLE ONLY public.visits
 -- PostgreSQL database dump complete
 --
 
-\unrestrict BNcDxKLEAnc5agJb2kNhn2BEfSJeostgM70NA9ht7g2B1Ze1F9pGEhfwW8ValIC
+\unrestrict NV6pfaDyAW6Ydc6wMbQsLGtbAgXbgAR1bgAhNyHe4hnMeJ0ymepuwMxbSOL15RX
 
