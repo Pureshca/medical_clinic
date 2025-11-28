@@ -1,0 +1,4 @@
+[sqlfluff]
+dialect = postgres
+# Отключаем слишком строгие правила для нашего дампа схемы
+exclude_rules = RF04,RF06,LT02,LT05,LT12,LT01
