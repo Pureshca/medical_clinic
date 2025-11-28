@@ -19,6 +19,7 @@ class Doctor(db.Model):
     __tablename__ = "doctors"
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False)
+    middle_name = db.Column(db.String(50))  # изменения для 8 ЛБ
     last_name = db.Column(db.String(50), nullable=False)
     position = db.Column(db.String(100), nullable=False)
     login = db.Column(db.String(50), unique=True, nullable=False)
