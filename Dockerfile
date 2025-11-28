@@ -21,7 +21,8 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Установка SQLFluff
-RUN pip install --no-cache-dir sqlfluff sqlfluff-templater-jinja
+RUN pip install --no-cache-dir sqlfluff jinja2
+
 
 
 # Копируем весь проект
