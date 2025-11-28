@@ -195,6 +195,7 @@ def admin_dashboard():
                 Patient.last_name.label("patient_last_name"),
                 Doctor.first_name.label("doctor_first_name"),
                 Doctor.last_name.label("doctor_last_name"),
+                Doctor.middle_name.label("doctor_middle_name"),
             )
             .join(Patient, Visit.patient_id == Patient.id)
             .join(Doctor, Visit.doctor_id == Doctor.id)
@@ -296,6 +297,7 @@ def admin_add_doctor():
     if request.method == "POST":
         try:
             first_name = request.form["first_name"]
+            middle_name = request.form["middle_name"]
             last_name = request.form["last_name"]
             position = request.form["position"]
             login_name = request.form["login"]
@@ -310,6 +312,7 @@ def admin_add_doctor():
             # Добавляем врача
             new_doctor = Doctor(
                 first_name=first_name,
+                middle_name=middle_name,
                 last_name=last_name,
                 position=position,
                 login=login_name,

@@ -16,6 +16,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Имя</th>
+                        <th>Отчество</th>
                         <th>Фамилия</th>
                         <th>Должность</th>
                         <th>Логин</th>
@@ -26,15 +27,18 @@
                 <tbody>
                     {% for doctor in doctors %}
                     <tr>
-                        <td>{{ doctor.id }}</td>
+                    <tr>
                         <td>{{ doctor.first_name }}</td>
+                        <td>{{ doctor.middle_name }}</td>
                         <td>{{ doctor.last_name }}</td>
                         <td>{{ doctor.position }}</td>
                         <td>{{ doctor.login }}</td>
                         <td>{{ doctor.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
                         <td>
-                            <form method="POST" action="{{ url_for('admin_delete_doctor', doctor_id=doctor.id) }}" style="display: inline;">
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите удалить этого врача?')">
+                            <form method="POST" action="{{ url_for('admin_delete_doctor', doctor_id=doctor.id) }}"
+                                style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Вы уверены, что хотите удалить этого врача?')">
                                     Удалить
                                 </button>
                             </form>

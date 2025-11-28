@@ -154,7 +154,8 @@
                     <tr>
                         <td>{{ visit.date.strftime('%d.%m.%Y %H:%M') }}</td>
                         <td>{{ visit.patient_first_name }} {{ visit.patient_last_name }}</td>
-                        <td>{{ visit.doctor_first_name }} {{ visit.doctor_last_name }}</td>
+                        <td>{{ visit.doctor_first_name }} {{ visit.doctor_middle_name }} {{ visit.doctor_last_name }}
+                        </td>
                         <td>{{ visit.diagnosis[:50] }}{% if visit.diagnosis|length > 50 %}...{% endif %}</td>
                         <td>
                             <button class="btn btn-sm btn-info" onclick="showVisitDetails('{{ visit.id }}')">
