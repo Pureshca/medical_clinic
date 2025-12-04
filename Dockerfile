@@ -20,8 +20,9 @@ COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Установка SQLFluff
+# Установка SQLFluff и Alembic
 RUN pip install --no-cache-dir sqlfluff jinja2
+RUN pip install --no-cache-dir alembic psycopg2-binary
 
 
 
