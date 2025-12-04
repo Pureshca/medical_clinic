@@ -24,6 +24,7 @@ class Doctor(db.Model):
     position = db.Column(db.String(100), nullable=False)
     login = db.Column(db.String(50), unique=True, nullable=False)
     phone = db.Column(db.String(20))
+    room = db.Column(db.String(5), nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
