@@ -371,6 +371,7 @@ def populate_db():
                     last_name="Belov",
                     position="Therapist",
                     login="belov",
+                    phone="89897650467",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
@@ -378,6 +379,7 @@ def populate_db():
                     last_name="Kozlova",
                     position="Surgeon",
                     login="kozlova",
+                    phone="89897650448",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(

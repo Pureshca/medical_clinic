@@ -20,6 +20,7 @@
                         <th>Фамилия</th>
                         <th>Должность</th>
                         <th>Логин</th>
+                        <th>Tелефон</th>
                         <th>Дата создания</th>
                         <th>Действия</th>
                     </tr>
@@ -28,12 +29,13 @@
                     {% for doctor in doctors %}
                     <tr>
                     <tr>
-                        <td>{{ doctor.id}}</td>
+                        <td>{{ doctor.id }}</td>
                         <td>{{ doctor.first_name }}</td>
                         <td>{{ doctor.middle_name }}</td>
                         <td>{{ doctor.last_name }}</td>
                         <td>{{ doctor.position }}</td>
                         <td>{{ doctor.login }}</td>
+                        <td>{{ doctor.phone }}</td>
                         <td>{{ doctor.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
                         <td>
                             <form method="POST" action="{{ url_for('admin_delete_doctor', doctor_id=doctor.id) }}"
