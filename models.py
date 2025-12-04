@@ -23,7 +23,7 @@ class Doctor(db.Model):
     last_name = db.Column(db.String(50), nullable=False)
     position = db.Column(db.String(100), nullable=False)
     login = db.Column(db.String(50), unique=True, nullable=False)
-    phone = db.Column(db.String(20))
+    phone = db.Column(db.String(20), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
