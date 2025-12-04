@@ -23,8 +23,8 @@ class Doctor(db.Model):
     last_name = db.Column(db.String(50), nullable=False)
     position = db.Column(db.String(100), nullable=False)
     login = db.Column(db.String(50), unique=True, nullable=False)
-    phone = db.Column(db.String(20))
-    room = db.Column(db.String(5), nullable=True)
+    phone = db.Column(db.String(20), unique=True, nullable=False)
+    room = db.Column(db.String(10), nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -369,107 +369,137 @@ def populate_db():
             doctors = [
                 Doctor(
                     first_name="Alexander",
+                    middle_name="Sergeevich",
                     last_name="Belov",
                     position="Therapist",
                     login="belov",
+                    phone="89897650467",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Ekaterina",
+                    middle_name="Andreevna",
                     last_name="Kozlova",
                     position="Surgeon",
                     login="kozlova",
+                    phone="89897650448",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Mikhail",
+                    middle_name="Petrovich",
                     last_name="Orlov",
                     position="Cardiologist",
                     login="orlov",
+                    phone="+7-989-000-01-03",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Svetlana",
+                    middle_name="Valeryevna",
                     last_name="Andreeva",
                     position="Neurologist",
                     login="andreeva",
+                    phone="+7-989-000-01-04",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Artem",
+                    middle_name="Olegovich",
                     last_name="Makarov",
                     position="Ophthalmologist",
                     login="makarov",
+                    phone="+7-989-000-01-05",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Nadezhda",
+                    middle_name="Viktorovna",
                     last_name="Zakharova",
                     position="ENT Specialist",
                     login="zakharova",
+                    phone="+7-989-000-01-06",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Vladimir",
+                    middle_name="Ivanovich",
                     last_name="Sokolov",
                     position="Endocrinologist",
                     login="sokolov",
+                    phone="+7-989-000-01-07",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Oksana",
+                    middle_name="Nikolaevna",
                     last_name="Pavlova",
                     position="Gastroenterologist",
                     login="pavlova",
+                    phone="+7-989-000-01-08",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Grigory",
+                    middle_name="Yaroslavovich",
                     last_name="Stepanov",
                     position="Urologist",
                     login="stepanov",
+                    phone="+7-989-000-01-09",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Lyudmila",
+                    middle_name="Alekseevna",
                     last_name="Nikolaeva",
                     position="Gynecologist",
                     login="nikolaeva",
+                    phone="+7-989-000-01-10",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Stanislav",
+                    middle_name="Denisovich",
                     last_name="Ivanov",
                     position="Pediatrician",
                     login="ivanov_doc",
+                    phone="+7-989-000-01-11",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Victoria",
+                    middle_name="Evgenievna",
                     last_name="Dmitrieva",
                     position="Dermatologist",
                     login="dmitrieva",
+                    phone="+7-989-000-01-12",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Roman",
+                    middle_name="Maximovich",
                     last_name="Kuznetsov",
                     position="Oncologist",
                     login="kuznetsov_doc",
+                    phone="+7-989-000-01-13",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Anastasia",
+                    middle_name="Romanovna",
                     last_name="Soloveva",
                     position="Psychiatrist",
                     login="soloveva",
+                    phone="+7-989-000-01-14",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
                     first_name="Konstantin",
+                    middle_name="Mikhailovich",
                     last_name="Vasiliev",
                     position="Traumatologist",
                     login="vasiliev_doc",
+                    phone="+7-989-000-01-15",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
             ]
