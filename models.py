@@ -19,12 +19,12 @@ class Doctor(db.Model):
     __tablename__ = "doctors"
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False)
-    middle_name = db.Column(db.String(50))  # изменения для 8 ЛБ
+    middle_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
     position = db.Column(db.String(100), nullable=False)
     login = db.Column(db.String(50), unique=True, nullable=False)
+    phone = db.Column(db.String(20), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    phone = db.Column(db.String(20), nullable=True)  # изменения для 8 ЛБ
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -36,6 +36,7 @@ class Patient(db.Model):
     gender = db.Column(String(10), nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
     address = db.Column(db.Text)
+    phone = db.Column(db.String(20), nullable=True)  # изменения для 8 ЛБ
     login = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -372,7 +373,7 @@ def populate_db():
                     last_name="Belov",
                     position="Therapist",
                     login="belov",
-                    phone="+7-989-000-01-01",
+                    phone="89897650467",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
@@ -381,7 +382,7 @@ def populate_db():
                     last_name="Kozlova",
                     position="Surgeon",
                     login="kozlova",
-                    phone="+7-989-000-01-02",
+                    phone="89897650448",
                     password_hash=hashlib.sha256("doctor123".encode()).hexdigest(),
                 ),
                 Doctor(
