@@ -1,6 +1,9 @@
 {
     "files.exclude": {
+        "**/.env": true,
+        "**/.sqlfluff": true,
         "**/.venv": true,
-        "**/.venv/": true
+        "**/.venv/": true,
+        "**/alembic.ini": true
     }
 }
