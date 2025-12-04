@@ -505,32 +505,6 @@ def populate_db():
             db.session.add_all(doctors)
             print("✅ Doctors added")
 
-        # временный код для заполнения бд
-        # --- НОВЫЙ БЛОК: обновляем отчества и телефоны у существующих докторов ---
-        doctor_updates = {
-            "belov": ("Sergeevich", "+7-989-000-01-01"),
-            "kozlova": ("Andreevna", "+7-989-000-01-02"),
-            "orlov": ("Petrovich", "+7-989-000-01-03"),
-            "andreeva": ("Valeryevna", "+7-989-000-01-04"),
-            "makarov": ("Olegovich", "+7-989-000-01-05"),
-            "zakharova": ("Viktorovna", "+7-989-000-01-06"),
-            "sokolov": ("Ivanovich", "+7-989-000-01-07"),
-            "pavlova": ("Nikolaevna", "+7-989-000-01-08"),
-            "stepanov": ("Yaroslavovich", "+7-989-000-01-09"),
-            "nikolaeva": ("Alekseevna", "+7-989-000-01-10"),
-            "ivanov_doc": ("Denisovich", "+7-989-000-01-11"),
-            "dmitrieva": ("Evgenievna", "+7-989-000-01-12"),
-            "kuznetsov_doc": ("Maximovich", "+7-989-000-01-13"),
-            "soloveva": ("Romanovna", "+7-989-000-01-14"),
-            "vasiliev_doc": ("Mikhailovich", "+7-989-000-01-15"),
-        }
-
-        for login, (middle_name, phone) in doctor_updates.items():
-            doc = Doctor.query.filter_by(login=login).first()
-            if doc:
-                doc.middle_name = middle_name
-                doc.phone = phone
-
         # Проверяем и добавляем лекарства
         if not Medicine.query.first():
             medicines = [
