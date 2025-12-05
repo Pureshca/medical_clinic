@@ -25,7 +25,7 @@ class Doctor(db.Model):
     login = db.Column(db.String(50), unique=True, nullable=False)
     phone = db.Column(db.String(20), unique=True, nullable=False)
     room = db.Column(db.String(10), nullable=True)
-    email = db.Column(db.String(120), nullable=True) # тестирование работы alembic
+    emails = db.Column(db.String(120), nullable=True) # тестирование работы alembic
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
